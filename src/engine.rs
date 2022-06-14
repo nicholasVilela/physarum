@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 use ggez::{GameResult, Context, event::EventHandler, graphics::{self, Color, MeshBatch, MeshBuilder, DrawParam}, mint::Point2, timer};
-use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species};
+use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species, SpeciesConfig};
 
 
 pub struct Engine {
@@ -36,13 +36,14 @@ impl Engine {
     }
     
     fn construct_agent_meshbatch(ctx: &mut Context) -> GameResult<MeshBatch> {
+        let color = load_config::<SpeciesConfig>("species_A")?.color;
         let mesh = MeshBuilder::new()
             .circle(
                 graphics::DrawMode::fill(),
                 Point2 { x: 1.0, y: 1.0 },
-                2.0,
                 1.0,
-                Color::WHITE,
+                1.0,
+                color,
             )
             .unwrap()
             .build(ctx)
@@ -63,6 +64,7 @@ impl Engine {
 impl EventHandler for Engine {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         let delta = timer::delta(ctx);
+
         for agent in &mut self.agents {
             agent.update(delta, &self.window_config, &mut self.trail)?;
 

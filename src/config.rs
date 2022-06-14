@@ -1,6 +1,6 @@
 use std::{fs::File, collections::HashMap};
 use serde::{de::DeserializeOwned, Serialize, Deserialize};
-use ggez::{GameResult};
+use ggez::{GameResult, graphics::{Color}};
 use ron::{de::from_reader};
 
 
@@ -32,4 +32,6 @@ pub struct SimulationConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SpeciesConfig {
     pub move_speed: f32,
+    pub look_ahead: f32,
+    pub color: Color,
 }

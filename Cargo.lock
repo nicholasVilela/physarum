@@ -1806,6 +1806,7 @@ dependencies = [
  "rayon",
  "ron",
  "serde",
+ "stackblur",
 ]
 
 [[package]]
@@ -2240,6 +2241,12 @@ dependencies = [
  "wayland-cursor",
  "wayland-protocols",
 ]
+
+[[package]]
+name = "stackblur"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1403925e9950497130d56bc00634990fe3929a809f05a029992ef731fc539016"
 
 [[package]]
 name = "static_assertions"

@@ -1,3 +1,10 @@
 SpeciesConfig(
-    move_speed: 1000.0
+    move_speed: 20,
+    look_ahead: 100.0,
+    color: Color(
+        r: 1.0,
+        g: 0.0,
+        b: 1.0,
+        a: 1.0,
+    )
 )
