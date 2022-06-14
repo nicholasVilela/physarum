@@ -31,15 +31,15 @@ impl Trail {
     }
 
     pub fn update_pixel(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult {
-        let pixel_index = (position.y * (window_config.width - 1.0)) + position.x;
-        let pixel_index = pixel_index as usize;
+        let pixel_index = position.y as usize;
+        let pixel_index = pixel_index * window_config.width as usize + position.x as usize;
         let pixel_index = pixel_index * 4;
         
         println!("{:?}", pixel_index);
 
         self.buffer[pixel_index] = 255;
-        // self.buffer[pixel_index + 1] = 255;
-        // self.buffer[pixel_index + 2] = 255;
+        self.buffer[pixel_index + 1] = 255;
+        self.buffer[pixel_index + 2] = 255;
 
         return Ok(());
     }
