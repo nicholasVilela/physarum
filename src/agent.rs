@@ -1,22 +1,33 @@
-use std::{f32::consts::TAU, collections::HashMap, time::Duration};
+use std::{f32::consts::TAU, collections::HashMap, time::Duration, fmt};
 use rand::{Rng};
 use ggez::{GameResult, timer};
-use crate::{Vec2, WindowConfig, Trail, FVec2};
+use crate::{Vec2, WindowConfig, Trail, FVec2, load_config, SpeciesConfig};
 
+
+#[derive(Debug)]
+pub enum Species {
+    A,
+}
+
+impl fmt::Display for Species {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(f, "species_{:?}", self);
+    }
+}
 
 pub struct Agent {
+    pub species: Species,
     pub position: FVec2,
     pub angle: f32,
-    pub move_speed: f32,
 }
 
 impl Agent {
-    pub fn new<R: Rng + ?Sized>(width: f32, height: f32, move_speed: f32, rng: &mut R) -> GameResult<Agent> {
+    pub fn new<R: Rng + ?Sized>(species: Species, window_config: &WindowConfig,  rng: &mut R) -> GameResult<Agent> {
         let (x, y, angle) = rng.gen::<(f32, f32, f32)>();
         let agent = Agent {
-            position: FVec2::new(x * width, y * height),
+            species,
+            position: FVec2::new(x * window_config.width as f32 , y * window_config.height as f32),
             angle: angle * TAU,
-            move_speed,
         };
 
         return Ok(agent);
@@ -25,11 +36,13 @@ impl Agent {
     pub fn update(&mut self, delta: Duration, window_config: &WindowConfig, trail: &mut Trail) -> GameResult {
         let mut rng = rand::thread_rng();
 
-        let direction = FVec2::new(self.angle.cos(), self.angle.sin());
-        let mut position = self.position + direction * self.move_speed * delta.as_secs_f32();
+        let move_speed = self.move_speed()?;
 
-        let width = window_config.width;
-        let height = window_config.height;
+        let direction = FVec2::new(self.angle.cos(), self.angle.sin());
+        let mut position = self.position + direction * move_speed * delta.as_secs_f32();
+
+        let width = window_config.width as f32;
+        let height = window_config.height as f32;
 
         if position.x < 0.0 || position.x >= width || position.y < 0.0 || position.y >= height {
             position.x = (width - 0.01).min(position.x.max(0.0));
@@ -38,23 +51,24 @@ impl Agent {
             self.angle = rng.gen::<f32>() * TAU;
         }
 
-        // trail_map.remove(&self.position.string());
-
         self.position = position;
 
         trail.update_pixel(self.position, window_config)?;
-        // trail_pixel[0] = 255;
-        // trail_pixel[1] = 255;
-        // trail_pixel[2] = 255;
-
-        // if trail_map.contains_key(&self.position.string()) {
-        //     let value = trail_map.get_mut(&self.position.string()).unwrap();
-        //     *value = 1;
-        // }
-        // else {
-        //     trail_map.insert(self.position.string(), 1);
-        // }
 
         return Ok(());
+    }
+
+    fn move_speed(&mut self) -> GameResult<f32> {
+        let config = load_config::<SpeciesConfig>(&Species::A.to_string())?;
+
+        return Ok(config.move_speed);
+
+        // match self.species {
+        //     Species::A => {
+        //         let config = load_config::<SpeciesConfig>("species_a")?;
+
+        //         return Ok(config.move_speed);
+        //     },
+        // }
     }
 }

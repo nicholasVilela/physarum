@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 use ggez::{GameResult, Context, event::EventHandler, graphics::{self, Color, MeshBatch, MeshBuilder, DrawParam}, mint::Point2, timer};
-use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail};
+use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species};
 
 
 pub struct Engine {
@@ -12,9 +12,9 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
-        let agents = Engine::construct_agents()?;
-        let agent_meshbatch = Engine::construct_agent_meshbatch(ctx)?;
         let window_config = load_config::<WindowConfig>("window")?;
+        let agents = Engine::construct_agents(&window_config)?;
+        let agent_meshbatch = Engine::construct_agent_meshbatch(ctx)?;
         let trail = Engine::construct_trail(ctx, &window_config)?;
 
         let engine = Engine { agents, agent_meshbatch, trail, window_config };
@@ -22,13 +22,13 @@ impl Engine {
         return Ok(engine);
     }
 
-    fn construct_agents() -> GameResult<Vec<Agent>> {
+    fn construct_agents(window_config: &WindowConfig) -> GameResult<Vec<Agent>> {
         let mut agents = Vec::new();
         let simulation_config = load_config::<SimulationConfig>("simulation")?;
         let mut rng = rand::thread_rng();
 
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(480.0, 480.0, 100.0, &mut rng)?;
+            let agent = Agent::new(Species::A, window_config, &mut rng)?;
             agents.push(agent);
         }
 

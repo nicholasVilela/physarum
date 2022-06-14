@@ -20,11 +20,16 @@ pub fn load_config<T: Serialize + DeserializeOwned>(name: &str) -> GameResult<T>
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WindowConfig {
-    pub width: f32,
-    pub height: f32,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimulationConfig {
     pub agent_count: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SpeciesConfig {
+    pub move_speed: f32,
 }
