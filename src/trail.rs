@@ -27,8 +27,10 @@ impl Trail {
         let width = window_config.width as u16;
         let height = window_config.height as u16;
 
-        let mut pixels = unsafe { self.buffer.align_to_mut::<u32>().1 };
-        blur(&mut pixels, NonZeroUsize::new(width as usize).unwrap(), NonZeroUsize::new(height as usize).unwrap(), NonZeroU8::new(simulation_config.blur_strength).unwrap());
+        if simulation_config.blur_strength > 0 {
+            let mut pixels = unsafe { self.buffer.align_to_mut::<u32>().1 };
+            blur(&mut pixels, NonZeroUsize::new(width as usize).unwrap(), NonZeroUsize::new(height as usize).unwrap(), NonZeroU8::new(simulation_config.blur_strength).unwrap());
+        }
 
         for y in 0..window_config.height {
             for x in 0..window_config.width {
@@ -51,6 +53,7 @@ impl Trail {
         self.buffer[pixel_index] = (species_config.color.r * 255.0) as u8;
         self.buffer[pixel_index + 1] = (species_config.color.g * 255.0) as u8;
         self.buffer[pixel_index + 2] = (species_config.color.b * 255.0) as u8;
+        // self.buffer[pixel_index + 3] = (species_config.color.a * 255.0) as u8;
 
         return Ok(());
     }
@@ -59,14 +62,34 @@ impl Trail {
         let pixel_index = self.get_pixel_index(position, window_config)?;
         let evaporation_speed = simulation_config.evaporation_speed;
 
-        if self.buffer[pixel_index] > evaporation_speed {
+        // if self.buffer[pixel_index + 3] >= evaporation_speed {
+        //     self.buffer[pixel_index + 3] -= evaporation_speed;
+
+        //     if self.buffer[pixel_index + 3] > 0 && self.buffer[pixel_index + 3] < evaporation_speed {
+        //         self.buffer[pixel_index + 3] = 0;
+        //     }
+        // }
+
+        if self.buffer[pixel_index] >= evaporation_speed {
             self.buffer[pixel_index] -= evaporation_speed;
+
+            if self.buffer[pixel_index] > 0 && self.buffer[pixel_index] < evaporation_speed {
+                self.buffer[pixel_index] = 0;
+            }
         }
-        if self.buffer[pixel_index + 1] > evaporation_speed {
+        if self.buffer[pixel_index + 1] >= evaporation_speed {
             self.buffer[pixel_index + 1] -= evaporation_speed;
+            
+            if self.buffer[pixel_index + 1] > 0 && self.buffer[pixel_index + 1] < evaporation_speed {
+                self.buffer[pixel_index + 1] = 0;
+            }
         }
-        if self.buffer[pixel_index + 2] > evaporation_speed {
+        if self.buffer[pixel_index + 2] >= evaporation_speed {
             self.buffer[pixel_index + 2] -= evaporation_speed;
+
+            if self.buffer[pixel_index + 2] > 0 && self.buffer[pixel_index + 2] < evaporation_speed {
+                self.buffer[pixel_index + 2] = 0;
+            }
         }
 
         return Ok(());
@@ -98,9 +121,17 @@ impl Trail {
         return Ok(pixel);
     }
 
+    pub fn get_pixel_alpha(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult< u8> {
+        let pixel_index = self.get_pixel_index(position, window_config)?;
+
+        let alpha = self.buffer[pixel_index + 3];
+
+        return Ok(alpha);
+    }
+
     fn construct_buffer( width: usize, height: usize) -> GameResult<Vec<u8>> {
         let count = width * height * 4;
-        let color = vec![0,0,0,255];
+        let color = vec![0,0,0,1];
         let buffer: Vec<u8> = repeat(color).flat_map(|x| x).take(count).collect();
 
         return Ok(buffer);

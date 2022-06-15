@@ -29,7 +29,7 @@ impl Engine {
         let mut rng = rand::thread_rng();
 
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(Species::A, window_config, &mut rng)?;
+            let agent = Agent::new(Species::A, window_config, &simulation_config.pattern, &mut rng)?;
             agents.push(agent);
         }
 
@@ -80,7 +80,7 @@ impl EventHandler for Engine {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, Color::new(0.1, 0.1, 0.1, 1.0));
+        graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
 
         graphics::draw(ctx, &self.trail.map, DrawParam::default())?;
 

@@ -9,6 +9,9 @@ pub use config::*;
 mod engine;
 pub use engine::*;
 
+mod enums;
+pub use enums::*;
+
 mod trail;
 pub use trail::*;
 

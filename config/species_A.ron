@@ -1,11 +1,12 @@
 SpeciesConfig(
-    move_speed: 50,
+    move_speed: 100,
     look_ahead: 10,
     blur_radius: 1,
     strength: 1,
+    max_weight: 255,
     color: Color(
         r: 1.0,
-        g: 0.0,
+        g: 1.0,
         b: 1.0,
         a: 1.0,
     )

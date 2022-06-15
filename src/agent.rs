@@ -1,19 +1,8 @@
-use std::{f32::consts::TAU, collections::HashMap, time::Duration, fmt};
-use rand::{Rng};
-use ggez::{GameResult, timer};
-use crate::{Vec2, WindowConfig, Trail, FVec2, load_config, SpeciesConfig};
+use std::{f32::consts::TAU, time::Duration};
+use rand::{Rng, distributions::Uniform};
+use ggez::{GameResult};
+use crate::{WindowConfig, Trail, FVec2, load_config, SpeciesConfig, Species, Pattern};
 
-
-#[derive(Debug)]
-pub enum Species {
-    A,
-}
-
-impl fmt::Display for Species {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        return write!(f, "species_{:?}", self);
-    }
-}
 
 pub struct Agent {
     pub species: Species,
@@ -23,14 +12,16 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new<R: Rng + ?Sized>(species: Species, window_config: &WindowConfig,  rng: &mut R) -> GameResult<Agent> {
-        let (x, y, angle) = rng.gen::<(f32, f32, f32)>();
+    pub fn new<R: Rng + ?Sized>(species: Species, window_config: &WindowConfig, pattern: &Pattern,  rng: &mut R) -> GameResult<Agent> {
+        let angle = rng.gen::<f32>();
         let config = load_config::<SpeciesConfig>(&Species::A.to_string())?;
+        let position = Agent::calculate_position(pattern, window_config, rng)?;
 
         let agent = Agent {
             species,
             config,
-            position: FVec2::new(x * window_config.width as f32 , y * window_config.height as f32),
+            // position: FVec2::new(x * window_config.width as f32 , y * window_config.height as f32),
+            position,
             angle: angle * TAU,
         };
 
@@ -61,7 +52,7 @@ impl Agent {
         let left_strength = (left_pixel[0] + left_pixel[1] + left_pixel[2]) as usize;
         let right_strength = (right_pixel[0] + right_pixel[1] + right_pixel[2]) as usize;
 
-        let total_weight = forward_strength + left_strength + right_strength;
+        let total_weight = (forward_strength + left_strength + right_strength).min(self.config.max_weight);
 
         if total_weight > 0 {
             let nudge_x = ((forward_strength as f32 * forward_weight.x + left_strength as f32 * left_weight.x + right_strength as f32 * right_weight.x) / total_weight as f32) * self.config.strength;
@@ -83,5 +74,27 @@ impl Agent {
         trail.update_pixel(self.position, &self.config, window_config)?;
 
         return Ok(());
+    }
+
+    pub fn calculate_position<R: Rng + ?Sized>(pattern: &Pattern, window_config: &WindowConfig, rng: &mut R) -> GameResult<FVec2> {
+        let mut position = FVec2::new(0.0, 0.0);
+
+        match pattern {
+            Pattern::Random => {
+                let (x, y) = rng.gen::<(f32, f32)>();
+
+                position.x = x * window_config.width as f32;
+                position.y = y * window_config.height as f32;
+            },
+            Pattern::Spherical => {
+                // Uniform
+            },
+            Pattern::Center => {
+                position.x = window_config.width as f32 / 2.0;
+                position.y = window_config.height as f32 / 2.0;
+            }
+        };
+
+        return Ok(position);
     }
 }

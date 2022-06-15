@@ -2,6 +2,7 @@ use std::{fs::File, collections::HashMap};
 use serde::{de::DeserializeOwned, Serialize, Deserialize};
 use ggez::{GameResult, graphics::{Color}};
 use ron::{de::from_reader};
+use crate::{Pattern};
 
 
 pub fn load_config<T: Serialize + DeserializeOwned>(name: &str) -> GameResult<T> {
@@ -29,6 +30,7 @@ pub struct SimulationConfig {
     pub agent_count: i32,
     pub evaporation_speed: u8,
     pub blur_strength: u8,
+    pub pattern: Pattern,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,5 +39,6 @@ pub struct SpeciesConfig {
     pub look_ahead: f32,
     pub blur_radius: i32,
     pub strength: f32,
+    pub max_weight: usize,
     pub color: Color,
 }
