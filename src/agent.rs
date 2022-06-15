@@ -64,8 +64,8 @@ impl Agent {
         let total_weight = forward_strength + left_strength + right_strength;
 
         if total_weight > 0 {
-            let nudge_x = ((forward_strength as f32 * forward_weight.x + left_strength as f32 * left_weight.x + right_strength as f32 * right_weight.x) / total_weight as f32) / 10.0;
-            let nudge_y = ((forward_strength as f32 * forward_weight.y + left_strength as f32 * left_weight.y + right_strength as f32 * right_weight.y) / total_weight as f32) / 10.0;
+            let nudge_x = ((forward_strength as f32 * forward_weight.x + left_strength as f32 * left_weight.x + right_strength as f32 * right_weight.x) / total_weight as f32) * self.config.strength;
+            let nudge_y = ((forward_strength as f32 * forward_weight.y + left_strength as f32 * left_weight.y + right_strength as f32 * right_weight.y) / total_weight as f32) * self.config.strength;
             velocity = FVec2::new(velocity.x + nudge_x, velocity.y + nudge_y);
         }
 

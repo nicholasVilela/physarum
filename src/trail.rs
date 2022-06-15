@@ -1,10 +1,8 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 use std::iter::repeat;
 use ggez::{graphics::{Image, MeshBatch, MeshBuilder, DrawMode, Color}, Context, GameResult};
-use crate::{WindowConfig, Vec2, SpeciesConfig, FVec2};
-// use image::imageops::blur;
+use crate::{WindowConfig, Vec2, SpeciesConfig, FVec2, SimulationConfig};
 use stackblur::blur;
-// use fastblur::gaussian_blur;
 
 
 pub struct Trail {
@@ -25,12 +23,20 @@ impl Trail {
         return Ok(trail);
     }
 
-    pub fn update(&mut self, ctx: &mut Context, window_config: &WindowConfig) -> GameResult {
+    pub fn update(&mut self, ctx: &mut Context, window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult {
         let width = window_config.width as u16;
         let height = window_config.height as u16;
 
         let mut pixels = unsafe { self.buffer.align_to_mut::<u32>().1 };
-        blur(&mut pixels, NonZeroUsize::new(width as usize).unwrap(), NonZeroUsize::new(height as usize).unwrap(), NonZeroU8::new(1).unwrap());
+        blur(&mut pixels, NonZeroUsize::new(width as usize).unwrap(), NonZeroUsize::new(height as usize).unwrap(), NonZeroU8::new(simulation_config.blur_strength).unwrap());
+
+        for y in 0..window_config.height {
+            for x in 0..window_config.width {
+                let position = FVec2::new(x as f32, y as f32);
+
+                self.evaporate_pixel(position, window_config, simulation_config)?;
+            }
+        }
 
         self.map = Image::from_rgba8(ctx, width, height, &self.buffer)?;
 
@@ -40,9 +46,28 @@ impl Trail {
     pub fn update_pixel(&mut self, position: FVec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
+        // let position_map = 
+
         self.buffer[pixel_index] = (species_config.color.r * 255.0) as u8;
         self.buffer[pixel_index + 1] = (species_config.color.g * 255.0) as u8;
         self.buffer[pixel_index + 2] = (species_config.color.b * 255.0) as u8;
+
+        return Ok(());
+    }
+
+    pub fn evaporate_pixel(&mut self, position: FVec2, window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult {
+        let pixel_index = self.get_pixel_index(position, window_config)?;
+        let evaporation_speed = simulation_config.evaporation_speed;
+
+        if self.buffer[pixel_index] > evaporation_speed {
+            self.buffer[pixel_index] -= evaporation_speed;
+        }
+        if self.buffer[pixel_index + 1] > evaporation_speed {
+            self.buffer[pixel_index + 1] -= evaporation_speed;
+        }
+        if self.buffer[pixel_index + 2] > evaporation_speed {
+            self.buffer[pixel_index + 2] -= evaporation_speed;
+        }
 
         return Ok(());
     }

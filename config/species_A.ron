@@ -1,6 +1,8 @@
 SpeciesConfig(
-    move_speed: 20,
-    look_ahead: 100.0,
+    move_speed: 50,
+    look_ahead: 10,
+    blur_radius: 1,
+    strength: 1,
     color: Color(
         r: 1.0,
         g: 0.0,

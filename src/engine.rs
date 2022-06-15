@@ -8,23 +8,24 @@ pub struct Engine {
     agent_meshbatch: MeshBatch,
     trail: Trail,
     window_config: WindowConfig,
+    simulation_config: SimulationConfig,
 }
 
 impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
         let window_config = load_config::<WindowConfig>("window")?;
-        let agents = Engine::construct_agents(&window_config)?;
+        let simulation_config = load_config::<SimulationConfig>("simulation")?;
+        let agents = Engine::construct_agents(&window_config, &simulation_config)?;
         let agent_meshbatch = Engine::construct_agent_meshbatch(ctx)?;
         let trail = Engine::construct_trail(ctx, &window_config)?;
 
-        let engine = Engine { agents, agent_meshbatch, trail, window_config };
+        let engine = Engine { agents, agent_meshbatch, trail, window_config , simulation_config};
 
         return Ok(engine);
     }
 
-    fn construct_agents(window_config: &WindowConfig) -> GameResult<Vec<Agent>> {
+    fn construct_agents(window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult<Vec<Agent>> {
         let mut agents = Vec::new();
-        let simulation_config = load_config::<SimulationConfig>("simulation")?;
         let mut rng = rand::thread_rng();
 
         for _ in 0..simulation_config.agent_count {
@@ -73,7 +74,7 @@ impl EventHandler for Engine {
             self.agent_meshbatch.add(draw_param);
         }
 
-        self.trail.update(ctx, &self.window_config)?;
+        self.trail.update(ctx, &self.window_config, &self.simulation_config)?;
             
         return Ok(());
     }

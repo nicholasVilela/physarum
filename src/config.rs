@@ -27,11 +27,15 @@ pub struct WindowConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimulationConfig {
     pub agent_count: i32,
+    pub evaporation_speed: u8,
+    pub blur_strength: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SpeciesConfig {
     pub move_speed: f32,
     pub look_ahead: f32,
+    pub blur_radius: i32,
+    pub strength: f32,
     pub color: Color,
 }
