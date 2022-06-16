@@ -21,6 +21,9 @@ pub use vec2::*;
 mod fvec2;
 pub use fvec2::*;
 
+#[cfg(test)]
+mod tests;
+
 
 fn main() -> GameResult {
     let window_config = load_config::<WindowConfig>("window")?;

@@ -48,8 +48,6 @@ impl Trail {
     pub fn update_pixel(&mut self, position: FVec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
-        // let position_map = 
-
         self.buffer[pixel_index] = (species_config.color.r * 255.0) as u8;
         self.buffer[pixel_index + 1] = (species_config.color.g * 255.0) as u8;
         self.buffer[pixel_index + 2] = (species_config.color.b * 255.0) as u8;
@@ -109,6 +107,13 @@ impl Trail {
         return Ok(pixel_index);
     }
 
+    pub fn get_pixels_in_radius(&mut self, position: FVec2, radius: i32) -> GameResult<Vec<FVec2>> {
+        let pixel_list = Trail::calculate_pixel_list(radius);
+        let positions: Vec<FVec2> = pixel_list.iter().map(|pos| FVec2::new(position.x + pos.0 as f32, position.y + pos.1 as f32)).collect();
+
+        return Ok(positions);
+    }
+
     pub fn get_pixel(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult<Vec<u8>> {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
@@ -135,5 +140,22 @@ impl Trail {
         let buffer: Vec<u8> = repeat(color).flat_map(|x| x).take(count).collect();
 
         return Ok(buffer);
+    }
+
+    fn calculate_pixel_list(radius: i32) -> Vec<(i32, i32)> {
+        let mut pixel_list = vec![(0,0)];
+    
+        if radius > 0 {
+            for y in -radius..radius + 1 {
+                for x in -radius..radius + 1{
+                    let t = (x, y);
+                    if t == (0,0) { continue; }
+    
+                    pixel_list.push(t);
+                }
+            }
+        }
+    
+        return pixel_list;
     }
 }
