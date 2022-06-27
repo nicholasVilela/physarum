@@ -1,10 +1,10 @@
 SpeciesConfig(
-    move_speed: 50,
-    sensor_angle: 20.0,
-    sensor_distance: 5.0,
+    move_speed: 100,
+    sensor_angle: 50.0,
+    sensor_distance: 10.0,
     sensor_size: 1,
-    turn_speed: 10.0,
-    forward_random_strength: -0.5,
+    turn_speed: 5.0,
+    forward_random_strength: 20,
     color: Color(
         r: 1.0,
         g: 1.0,
