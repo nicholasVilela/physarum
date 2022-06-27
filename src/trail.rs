@@ -51,8 +51,20 @@ impl Trail {
         self.buffer[pixel_index] = (species_config.color.r * 255.0) as u8;
         self.buffer[pixel_index + 1] = (species_config.color.g * 255.0) as u8;
         self.buffer[pixel_index + 2] = (species_config.color.b * 255.0) as u8;
-        // self.buffer[pixel_index + 3] = (species_config.color.a * 255.0) as u8;
 
+        return Ok(());
+    }
+
+    fn evaporate_color(&mut self, pixel_index: usize, evaporation_speed: u8) -> GameResult {
+        if self.buffer[pixel_index] == 0 { return Ok(()); }
+
+        if self.buffer[pixel_index] < evaporation_speed { 
+            self.buffer[pixel_index] = 0;
+            return Ok(()); 
+        } 
+
+        self.buffer[pixel_index] -= evaporation_speed;
+        
         return Ok(());
     }
 
@@ -60,34 +72,8 @@ impl Trail {
         let pixel_index = self.get_pixel_index(position, window_config)?;
         let evaporation_speed = simulation_config.evaporation_speed;
 
-        // if self.buffer[pixel_index + 3] >= evaporation_speed {
-        //     self.buffer[pixel_index + 3] -= evaporation_speed;
-
-        //     if self.buffer[pixel_index + 3] > 0 && self.buffer[pixel_index + 3] < evaporation_speed {
-        //         self.buffer[pixel_index + 3] = 0;
-        //     }
-        // }
-
-        if self.buffer[pixel_index] >= evaporation_speed {
-            self.buffer[pixel_index] -= evaporation_speed;
-
-            if self.buffer[pixel_index] > 0 && self.buffer[pixel_index] < evaporation_speed {
-                self.buffer[pixel_index] = 0;
-            }
-        }
-        if self.buffer[pixel_index + 1] >= evaporation_speed {
-            self.buffer[pixel_index + 1] -= evaporation_speed;
-            
-            if self.buffer[pixel_index + 1] > 0 && self.buffer[pixel_index + 1] < evaporation_speed {
-                self.buffer[pixel_index + 1] = 0;
-            }
-        }
-        if self.buffer[pixel_index + 2] >= evaporation_speed {
-            self.buffer[pixel_index + 2] -= evaporation_speed;
-
-            if self.buffer[pixel_index + 2] > 0 && self.buffer[pixel_index + 2] < evaporation_speed {
-                self.buffer[pixel_index + 2] = 0;
-            }
+        for i in 0..3 {
+            self.evaporate_color(pixel_index + i, evaporation_speed)?;
         }
 
         return Ok(());

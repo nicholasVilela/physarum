@@ -20,7 +20,6 @@ impl Agent {
         let agent = Agent {
             species,
             config,
-            // position: FVec2::new(x * window_config.width as f32 , y * window_config.height as f32),
             position,
             angle: angle * TAU,
         };
@@ -87,7 +86,7 @@ impl Agent {
                 position.y = y * window_config.height as f32;
             },
             Pattern::Spherical => {
-                // Uniform
+                todo!();
             },
             Pattern::Center => {
                 position.x = window_config.width as f32 / 2.0;
