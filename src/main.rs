@@ -15,12 +15,6 @@ pub use enums::*;
 mod trail;
 pub use trail::*;
 
-mod vec2;
-pub use vec2::*;
-
-mod fvec2;
-pub use fvec2::*;
-
 #[cfg(test)]
 mod tests;
 
