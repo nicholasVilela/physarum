@@ -46,7 +46,6 @@ impl Engine {
                 1.0,
                 1.0,
                 color,
-                // Color::new(1.0, 1.0, 1.0, 1.0),
             )
             .unwrap()
             .build(ctx)

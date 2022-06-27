@@ -46,16 +46,6 @@ impl Trail {
         return Ok(());
     }
 
-    pub fn apply(&mut self, position: Vec2, value: UVec3, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
-        let pixel_index = self.get_pixel_index(position, window_config)?;
-
-        self.buffer[pixel_index] = value.x as u8;
-        self.buffer[pixel_index + 1] = value.y as u8;
-        self.buffer[pixel_index + 2] = value.z as u8;
-
-        return Ok(());
-    }
-
     pub fn update_pixel(&mut self, position: Vec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
@@ -104,13 +94,6 @@ impl Trail {
         return Ok(pixel_index);
     }
 
-    // pub fn get_pixels_in_radius(&mut self, position: Vec2, radius: i32) -> GameResult<Vec<Vec2>> {
-    //     let pixel_list = Trail::calculate_pixel_list(radius);
-    //     let positions: Vec<Vec2> = pixel_list.iter().map(|pos| FVec2::new(position.x + pos.0 as f32, position.y + pos.1 as f32)).collect();
-
-    //     return Ok(positions);
-    // }
-
     pub fn get_pixel(&self, position: Vec2, window_config: &WindowConfig) -> GameResult<UVec3> {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
@@ -123,36 +106,11 @@ impl Trail {
         return Ok(pixel);
     }
 
-    pub fn get_pixel_alpha(&mut self, position: Vec2, window_config: &WindowConfig) -> GameResult< u8> {
-        let pixel_index = self.get_pixel_index(position, window_config)?;
-
-        let alpha = self.buffer[pixel_index + 3];
-
-        return Ok(alpha);
-    }
-
     fn construct_buffer( width: usize, height: usize) -> GameResult<Vec<u8>> {
         let count = width * height * 4;
         let color = vec![0,0,0,1];
         let buffer: Vec<u8> = repeat(color).flat_map(|x| x).take(count).collect();
 
         return Ok(buffer);
-    }
-
-    fn calculate_pixel_list(radius: i32) -> Vec<(i32, i32)> {
-        let mut pixel_list = vec![(0,0)];
-    
-        if radius > 0 {
-            for y in -radius..radius + 1 {
-                for x in -radius..radius + 1{
-                    let t = (x, y);
-                    if t == (0,0) { continue; }
-    
-                    pixel_list.push(t);
-                }
-            }
-        }
-    
-        return pixel_list;
     }
 }
