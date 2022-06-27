@@ -46,6 +46,16 @@ impl Trail {
         return Ok(());
     }
 
+    pub fn apply(&mut self, position: Vec2, value: UVec3, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
+        let pixel_index = self.get_pixel_index(position, window_config)?;
+
+        self.buffer[pixel_index] = value.x as u8;
+        self.buffer[pixel_index + 1] = value.y as u8;
+        self.buffer[pixel_index + 2] = value.z as u8;
+
+        return Ok(());
+    }
+
     pub fn update_pixel(&mut self, position: Vec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 

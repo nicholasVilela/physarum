@@ -1,28 +1,38 @@
 use std::{f32::consts::{TAU, PI}, time::Duration};
 use rand::{Rng, distributions::Uniform};
 use ggez::{GameResult};
-use crate::{WindowConfig, Trail, FVec2, load_config, SpeciesConfig, Species, Pattern};
-use glam::{Vec2, IVec2, UVec3};
+use crate::{WindowConfig, Trail, FVec2, load_config, SpeciesConfig, Species, Pattern, SimulationConfig};
+use glam::{Vec2, IVec3, UVec3, Vec4};
 
 
 pub struct Agent {
     pub species: Species,
     pub config: SpeciesConfig,
+    // pub mask: UVec3,
     pub position: Vec2,
     pub angle: f32,
 }
 
 impl Agent {
-    pub fn new<R: Rng + ?Sized>(species: Species, window_config: &WindowConfig, pattern: &Pattern,  rng: &mut R) -> GameResult<Agent> {
+    pub fn new<R: Rng + ?Sized>(species: Species, window_config: &WindowConfig, simulation_config: &SimulationConfig,  rng: &mut R) -> GameResult<Agent> {
         let angle = rng.gen::<f32>();
         let config = load_config::<SpeciesConfig>(&Species::A.to_string())?;
-        let position = Agent::calculate_position(pattern, window_config, rng)?;
+        let position = Agent::calculate_position(&simulation_config.pattern, window_config, rng)?;
+        
+        // let species_id = rng.gen_range(1..simulation_config.species_count + 1);
+        // let index = species_id - 1;
+        // let mask = UVec3::new(
+        //     if species_id == 1 { 1 } else { 0 },
+        //     if species_id == 2 { 1 } else { 0 },
+        //     if species_id == 3 { 1 } else { 0 },
+        // );
 
         let agent = Agent {
             species,
             config,
             position,
             angle: angle * TAU,
+            // mask,
         };
 
         return Ok(agent);
@@ -37,6 +47,7 @@ impl Agent {
         let sensor_position = self.position + sensor_direction * self.config.sensor_distance;
         
         let mut sum = 0.0;
+        // let sense_weight = self.mask * 2 - 1;
 
         for offset_x in -self.config.sensor_size..self.config.sensor_size + 1 {
             for offset_y in -self.config.sensor_size..self.config.sensor_size + 1 {
@@ -45,6 +56,7 @@ impl Agent {
 
                 let sample = trail.get_pixel(Vec2::new(pos_x as f32, pos_y as f32), window_config)?;
 
+                // sum += sense_weight.dot(sample) as f32;
                 sum += (sample.x + sample.y + sample.z) as f32;
             }
         }
@@ -70,7 +82,7 @@ impl Agent {
             self.angle += 0.0;
         }
         else if weight_forward < weight_left && weight_forward < weight_right {
-            self.angle += (random_steer_strength - 0.5) * 2.0  * turn_speed * delta.as_secs_f32();
+            self.angle += (random_steer_strength + self.config.forward_random_strength) * 2.0  * turn_speed * delta.as_secs_f32();
         }
         else if weight_right > weight_left {
             self.angle -= random_steer_strength * turn_speed * delta.as_secs_f32();
@@ -89,6 +101,10 @@ impl Agent {
             self.angle = rng.gen::<f32>() * TAU;
         }
         else {
+            // let old_trail = trail.get_pixel(next_position, window_config)?;
+            // let value = (UVec3::new(1, 1, 1)).min(old_trail + self.mask);
+            // trail.apply(self.position, value, &self.config,  window_config)?;
+
             trail.update_pixel(self.position, &self.config, window_config)?;
         }
 

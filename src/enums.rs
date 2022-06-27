@@ -1,11 +1,11 @@
 use std::fmt;
-
 use serde::{Serialize, Deserialize};
 
 
 #[derive(Debug)]
 pub enum Species {
     A,
+    B,
 }
 
 impl fmt::Display for Species {

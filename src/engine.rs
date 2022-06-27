@@ -30,7 +30,7 @@ impl Engine {
         let mut rng = rand::thread_rng();
 
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(Species::A, window_config, &simulation_config.pattern, &mut rng)?;
+            let agent = Agent::new(Species::A, window_config, &simulation_config, &mut rng)?;
             agents.push(agent);
         }
 
@@ -46,6 +46,7 @@ impl Engine {
                 1.0,
                 1.0,
                 color,
+                // Color::new(1.0, 1.0, 1.0, 1.0),
             )
             .unwrap()
             .build(ctx)
@@ -76,7 +77,7 @@ impl EventHandler for Engine {
         }
         
         self.trail.update(ctx, &self.window_config, &self.simulation_config)?;
-        
+
         return Ok(());
     }
 
