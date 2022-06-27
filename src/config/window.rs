@@ -7,4 +7,5 @@ pub struct WindowConfig {
     pub width: i32,
     pub height: i32,
     pub background: Color,
+    pub show_fps: bool,
 }

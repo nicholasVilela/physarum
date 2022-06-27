@@ -1,8 +1,8 @@
 use std::{f32::consts::{TAU, PI}, time::Duration};
-use rand::{Rng, distributions::Uniform};
+use rand::{Rng};
 use ggez::{GameResult};
-use crate::{WindowConfig, Trail, FVec2, load, SpeciesConfig, Species, Pattern, SimulationConfig};
-use glam::{Vec2, IVec3, UVec3, Vec4};
+use crate::{WindowConfig, Trail, SpeciesConfig, Species, Pattern, SimulationConfig};
+use glam::{Vec2};
 
 
 pub struct Agent {

@@ -1,7 +1,7 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 use std::iter::repeat;
-use ggez::{graphics::{Image, ScreenImage, ImageFormat, MeshBuilder, DrawMode, Color}, Context, GameResult};
-use crate::{WindowConfig, SpeciesConfig, FVec2, SimulationConfig};
+use ggez::{graphics::{Image, ImageFormat}, Context, GameResult};
+use crate::{WindowConfig, SpeciesConfig, SimulationConfig};
 use stackblur::blur;
 use glam::{UVec3, Vec2};
 
