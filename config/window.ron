@@ -1,4 +1,10 @@
 WindowConfig(
     width: 500,
     height: 500,
+    background: Color(
+        r: 0.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    )
 )

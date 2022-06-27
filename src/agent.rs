@@ -16,7 +16,6 @@ pub struct Agent {
 impl Agent {
     pub fn new<R: Rng + ?Sized>(species: Species, species_config: SpeciesConfig, window_config: &WindowConfig, simulation_config: &SimulationConfig,  rng: &mut R) -> GameResult<Agent> {
         let angle = rng.gen::<f32>();
-        // let config = load::<SpeciesConfig>(&Species::A.to_string())?;
         let position = Agent::calculate_position(&simulation_config.pattern, window_config, rng)?;
         
         // let species_id = rng.gen_range(1..simulation_config.species_count + 1);

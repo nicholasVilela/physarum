@@ -33,11 +33,13 @@ impl Trail {
             blur(&mut pixels, NonZeroUsize::new(width as usize).unwrap(), NonZeroUsize::new(height as usize).unwrap(), NonZeroU8::new(simulation_config.blur_strength).unwrap());
         }
 
-        for y in 0..window_config.height {
-            for x in 0..window_config.width {
-                let position = Vec2::new(x as f32, y as f32);
-
-                self.evaporate_pixel(position, window_config, simulation_config)?;
+        if simulation_config.evaporation_speed > 0 {
+            for y in 0..window_config.height {
+                for x in 0..window_config.width {
+                    let position = Vec2::new(x as f32, y as f32);
+    
+                    self.evaporate_pixel(position, window_config, simulation_config)?;
+                }
             }
         }
 

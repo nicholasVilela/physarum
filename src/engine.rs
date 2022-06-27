@@ -85,7 +85,8 @@ impl EventHandler for Engine {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
+        let background_color = self.window_config.background;
+        graphics::clear(ctx, background_color);
 
         graphics::draw(ctx, &self.trail.map, DrawParam::default())?;
 
