@@ -1,6 +1,6 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 use std::iter::repeat;
-use ggez::{graphics::{Image, MeshBatch, MeshBuilder, DrawMode, Color}, Context, GameResult};
+use ggez::{graphics::{Image, ScreenImage, ImageFormat, MeshBuilder, DrawMode, Color}, Context, GameResult};
 use crate::{WindowConfig, SpeciesConfig, FVec2, SimulationConfig};
 use stackblur::blur;
 use glam::{UVec3, Vec2};
@@ -13,11 +13,11 @@ pub struct Trail {
 
 impl Trail {
     pub fn new(ctx: &mut Context, window_config: &WindowConfig) -> GameResult<Trail> {
-        let width = window_config.width as u16;
-        let height = window_config.height as u16;
+        let width = window_config.width as u32;
+        let height = window_config.height as u32;
 
         let buffer: Vec<u8>= Trail::construct_buffer(width as usize, height as usize)?;
-        let map = Image::from_rgba8(ctx, width, height, &buffer)?;
+        let map = Image::from_pixels(ctx, &buffer, ImageFormat::Rgba8UnormSrgb, width, height);
 
         let trail = Trail { map, buffer };
 
@@ -25,8 +25,8 @@ impl Trail {
     }
 
     pub fn update(&mut self, ctx: &mut Context, window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult {
-        let width = window_config.width as u16;
-        let height = window_config.height as u16;
+        let width = window_config.width as u32;
+        let height = window_config.height as u32;
 
         if simulation_config.blur_strength > 0 {
             let mut pixels = unsafe { self.buffer.align_to_mut::<u32>().1 };
@@ -43,7 +43,7 @@ impl Trail {
             }
         }
 
-        self.map = Image::from_rgba8(ctx, width, height, &self.buffer)?;
+        self.map = Image::from_pixels(ctx, &self.buffer, ImageFormat::Rgba8UnormSrgb, width, height);
 
         return Ok(());
     }

@@ -1,12 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
-use ggez::{GameResult, Context, event::EventHandler, graphics::{self, Color, MeshBatch, MeshBuilder, DrawParam}, mint::Point2, timer};
-use crate::{load, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species, SpeciesConfig};
-use rayon::prelude::*;
+use ggez::{GameResult, Context, event::EventHandler, graphics::{self, TextFragment, Color, Text, InstanceArray, DrawParam}, mint::Point2};
+use crate::{load, SimulationConfig, Agent, WindowConfig, Trail, Species, SpeciesConfig};
 
 
 pub struct Engine {
     agents: Vec<Agent>,
-    agent_meshbatch: MeshBatch,
+    agent_meshbatch: InstanceArray,
     trail: Trail,
     window_config: WindowConfig,
     simulation_config: SimulationConfig,
@@ -17,8 +15,13 @@ impl Engine {
         let window_config = load::<WindowConfig>("window")?;
         let simulation_config = load::<SimulationConfig>("simulation")?;
         let agents = Engine::construct_agents(&window_config, &simulation_config)?;
-        let agent_meshbatch = Engine::construct_agent_meshbatch(ctx)?;
+        let agent_meshbatch = Engine::construct_agent_meshbatch(ctx, &simulation_config)?;
         let trail = Engine::construct_trail(ctx, &window_config)?;
+
+        ctx.gfx.add_font(
+            "Main",
+            graphics::FontData::from_path(ctx, "/fonts/BN6FontBold.ttf")?,
+        );
 
         let engine = Engine { agents, agent_meshbatch, trail, window_config , simulation_config};
 
@@ -39,21 +42,8 @@ impl Engine {
         return Ok(agents);
     }
     
-    fn construct_agent_meshbatch(ctx: &mut Context) -> GameResult<MeshBatch> {
-        let color = load::<SpeciesConfig>("species_A")?.color;
-        let mesh = MeshBuilder::new()
-            .circle(
-                graphics::DrawMode::fill(),
-                Point2 { x: 1.0, y: 1.0 },
-                1.0,
-                1.0,
-                color,
-            )
-            .unwrap()
-            .build(ctx)
-            .unwrap();
-
-        let meshbatch = MeshBatch::new(mesh).unwrap();
+    fn construct_agent_meshbatch(ctx: &mut Context, simulation_config: &SimulationConfig) -> GameResult<InstanceArray> {
+        let meshbatch = InstanceArray::new(ctx, None, simulation_config.agent_count as u32, false);
 
         return Ok(meshbatch);
     }
@@ -67,7 +57,7 @@ impl Engine {
 
 impl EventHandler for Engine {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        let delta = timer::delta(ctx);
+        let delta = ctx.time.delta();
 
         for agent in &mut self.agents {
             agent.update(delta, &self.window_config, &mut self.trail)?;
@@ -75,7 +65,7 @@ impl EventHandler for Engine {
             if self.simulation_config.render_agents { 
                 let draw_param = DrawParam::new()
                     .dest(Point2 { x: agent.position.x, y: agent.position.y });
-                self.agent_meshbatch.add(draw_param);
+                self.agent_meshbatch.push(draw_param);
             }
         }
         
@@ -86,21 +76,22 @@ impl EventHandler for Engine {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let background_color = self.window_config.background;
-        graphics::clear(ctx, background_color);
+        let mut canvas = graphics::Canvas::from_frame(ctx, background_color);
 
-        graphics::draw(ctx, &self.trail.map, DrawParam::default())?;
+        canvas.draw(&self.trail.map, DrawParam::default());
 
         if self.simulation_config.render_agents {
-            self.agent_meshbatch.draw(ctx, DrawParam::default()).unwrap();
+            canvas.draw(&self.agent_meshbatch, DrawParam::default());
             self.agent_meshbatch.clear();
         }
 
-        let fps = timer::fps(ctx);
-        let fps_text = graphics::Text::new(format!("{:?}", fps as i32));
-        let fps_text_draw_param = graphics::DrawParam::new().dest(Point2 { x: 0.0, y: 0.0 }).color(Color::GREEN);
+        let fps = ctx.time.fps();
+        let fps_fragment = TextFragment::new(format!("{:?}", fps as i32)).font("Main").color(Color::new(0.0, 1.0, 0.0, 1.0));
+        let fps_text = Text::new(fps_fragment);
+        let fps_draw_param = DrawParam::new().dest(Point2 { x: 0.0, y: 0.0 });
 
-        graphics::draw(ctx, &fps_text, fps_text_draw_param)?;
+        canvas.draw(&fps_text, fps_draw_param);
 
-        return graphics::present(ctx);
+        return canvas.finish(ctx);
     }
 }
