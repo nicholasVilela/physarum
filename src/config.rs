@@ -5,7 +5,7 @@ use ron::{de::from_reader};
 use crate::{Pattern};
 
 
-pub fn load_config<T: Serialize + DeserializeOwned>(name: &str) -> GameResult<T> {
+pub fn load<T: Serialize + DeserializeOwned>(name: &str) -> GameResult<T> {
     let path = format!("{}/config/{}.ron", env!("CARGO_MANIFEST_DIR"), name);
     let file = File::open(&path).expect(&format!("Failed to open file at path: {}", path));
     let config = match from_reader(file) {
@@ -31,9 +31,10 @@ pub struct SimulationConfig {
     pub evaporation_speed: u8,
     pub blur_strength: u8,
     pub pattern: Pattern,
+    pub render_agents: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct SpeciesConfig {
     pub move_speed: f32,
     pub sensor_angle: f32,

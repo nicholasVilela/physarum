@@ -26,7 +26,7 @@ mod tests;
 
 
 fn main() -> GameResult {
-    let window_config = load_config::<WindowConfig>("window")?;
+    let window_config = load::<WindowConfig>("window")?;
     let window_mode = WindowMode::default().dimensions(window_config.width as f32, window_config.height as f32);
 
     let (mut ctx, event_loop) = ContextBuilder::new("Physarum", "nicholasVilela")

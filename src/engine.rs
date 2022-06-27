@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 use ggez::{GameResult, Context, event::EventHandler, graphics::{self, Color, MeshBatch, MeshBuilder, DrawParam}, mint::Point2, timer};
-use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species, SpeciesConfig};
+use crate::{load, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species, SpeciesConfig};
 use rayon::prelude::*;
 
 
@@ -14,8 +14,8 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
-        let window_config = load_config::<WindowConfig>("window")?;
-        let simulation_config = load_config::<SimulationConfig>("simulation")?;
+        let window_config = load::<WindowConfig>("window")?;
+        let simulation_config = load::<SimulationConfig>("simulation")?;
         let agents = Engine::construct_agents(&window_config, &simulation_config)?;
         let agent_meshbatch = Engine::construct_agent_meshbatch(ctx)?;
         let trail = Engine::construct_trail(ctx, &window_config)?;
@@ -29,8 +29,10 @@ impl Engine {
         let mut agents = Vec::new();
         let mut rng = rand::thread_rng();
 
+        let species_config = load::<SpeciesConfig>(&Species::A.to_string())?;
+
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(Species::A, window_config, &simulation_config, &mut rng)?;
+            let agent = Agent::new(Species::A, species_config, window_config, &simulation_config, &mut rng)?;
             agents.push(agent);
         }
 
@@ -38,7 +40,7 @@ impl Engine {
     }
     
     fn construct_agent_meshbatch(ctx: &mut Context) -> GameResult<MeshBatch> {
-        let color = load_config::<SpeciesConfig>("species_A")?.color;
+        let color = load::<SpeciesConfig>("species_A")?.color;
         let mesh = MeshBuilder::new()
             .circle(
                 graphics::DrawMode::fill(),
@@ -70,9 +72,11 @@ impl EventHandler for Engine {
         for agent in &mut self.agents {
             agent.update(delta, &self.window_config, &mut self.trail)?;
 
-            let draw_param = DrawParam::new()
-                .dest(Point2 { x: agent.position.x, y: agent.position.y });
-            self.agent_meshbatch.add(draw_param);
+            if self.simulation_config.render_agents { 
+                let draw_param = DrawParam::new()
+                    .dest(Point2 { x: agent.position.x, y: agent.position.y });
+                self.agent_meshbatch.add(draw_param);
+            }
         }
         
         self.trail.update(ctx, &self.window_config, &self.simulation_config)?;
@@ -85,8 +89,10 @@ impl EventHandler for Engine {
 
         graphics::draw(ctx, &self.trail.map, DrawParam::default())?;
 
-        self.agent_meshbatch.draw(ctx, DrawParam::default()).unwrap();
-        self.agent_meshbatch.clear();
+        if self.simulation_config.render_agents {
+            self.agent_meshbatch.draw(ctx, DrawParam::default()).unwrap();
+            self.agent_meshbatch.clear();
+        }
 
         let fps = timer::fps(ctx);
         let fps_text = graphics::Text::new(format!("{:?}", fps as i32));
