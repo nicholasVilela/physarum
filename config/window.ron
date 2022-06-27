@@ -7,5 +7,5 @@ WindowConfig(
         b: 0.0,
         a: 1.0,
     ),
-    show_fps: true,
+    show_fps: false,
 )
