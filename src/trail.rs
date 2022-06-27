@@ -1,8 +1,9 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 use std::iter::repeat;
 use ggez::{graphics::{Image, MeshBatch, MeshBuilder, DrawMode, Color}, Context, GameResult};
-use crate::{WindowConfig, Vec2, SpeciesConfig, FVec2, SimulationConfig};
+use crate::{WindowConfig, SpeciesConfig, FVec2, SimulationConfig};
 use stackblur::blur;
+use glam::{UVec3, Vec2};
 
 
 pub struct Trail {
@@ -34,7 +35,7 @@ impl Trail {
 
         for y in 0..window_config.height {
             for x in 0..window_config.width {
-                let position = FVec2::new(x as f32, y as f32);
+                let position = Vec2::new(x as f32, y as f32);
 
                 self.evaporate_pixel(position, window_config, simulation_config)?;
             }
@@ -45,7 +46,7 @@ impl Trail {
         return Ok(());
     }
 
-    pub fn update_pixel(&mut self, position: FVec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
+    pub fn update_pixel(&mut self, position: Vec2, species_config: &SpeciesConfig, window_config: &WindowConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
         self.buffer[pixel_index] = (species_config.color.r * 255.0) as u8;
@@ -68,7 +69,7 @@ impl Trail {
         return Ok(());
     }
 
-    pub fn evaporate_pixel(&mut self, position: FVec2, window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult {
+    pub fn evaporate_pixel(&mut self, position: Vec2, window_config: &WindowConfig, simulation_config: &SimulationConfig) -> GameResult {
         let pixel_index = self.get_pixel_index(position, window_config)?;
         let evaporation_speed = simulation_config.evaporation_speed;
 
@@ -79,7 +80,7 @@ impl Trail {
         return Ok(());
     }
 
-    pub fn get_pixel_index(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult<usize> {
+    pub fn get_pixel_index(&self, position: Vec2, window_config: &WindowConfig) -> GameResult<usize> {
         let pixel_index = position.y as usize;
         let pixel_index = pixel_index * window_config.width as usize + position.x as usize;
         let mut pixel_index = pixel_index * 4;
@@ -93,26 +94,26 @@ impl Trail {
         return Ok(pixel_index);
     }
 
-    pub fn get_pixels_in_radius(&mut self, position: FVec2, radius: i32) -> GameResult<Vec<FVec2>> {
-        let pixel_list = Trail::calculate_pixel_list(radius);
-        let positions: Vec<FVec2> = pixel_list.iter().map(|pos| FVec2::new(position.x + pos.0 as f32, position.y + pos.1 as f32)).collect();
+    // pub fn get_pixels_in_radius(&mut self, position: Vec2, radius: i32) -> GameResult<Vec<Vec2>> {
+    //     let pixel_list = Trail::calculate_pixel_list(radius);
+    //     let positions: Vec<Vec2> = pixel_list.iter().map(|pos| FVec2::new(position.x + pos.0 as f32, position.y + pos.1 as f32)).collect();
 
-        return Ok(positions);
-    }
+    //     return Ok(positions);
+    // }
 
-    pub fn get_pixel(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult<Vec<u8>> {
+    pub fn get_pixel(&self, position: Vec2, window_config: &WindowConfig) -> GameResult<UVec3> {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
         let pixel_r = self.buffer[pixel_index];
         let pixel_g = self.buffer[pixel_index + 1];
         let pixel_b = self.buffer[pixel_index + 2];
         
-        let pixel = vec!{pixel_r, pixel_g, pixel_b};
+        let pixel = UVec3::new(pixel_r as u32, pixel_g as u32, pixel_b as u32);
 
         return Ok(pixel);
     }
 
-    pub fn get_pixel_alpha(&mut self, position: FVec2, window_config: &WindowConfig) -> GameResult< u8> {
+    pub fn get_pixel_alpha(&mut self, position: Vec2, window_config: &WindowConfig) -> GameResult< u8> {
         let pixel_index = self.get_pixel_index(position, window_config)?;
 
         let alpha = self.buffer[pixel_index + 3];

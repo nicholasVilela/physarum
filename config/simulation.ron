@@ -1,6 +1,6 @@
 SimulationConfig(
-    agent_count: 35000,
-    evaporation_speed: 5,
-    blur_strength: 5,
+    agent_count: 20000,
+    evaporation_speed: 10,
+    blur_strength: 1,
     pattern: Center,
 )

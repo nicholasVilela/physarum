@@ -41,4 +41,8 @@ pub struct SpeciesConfig {
     pub strength: f32,
     pub max_weight: usize,
     pub color: Color,
+    pub sensor_angle: f32,
+    pub sensor_distance: f32,
+    pub sensor_size: i32,
+    pub turn_speed: f32,
 }

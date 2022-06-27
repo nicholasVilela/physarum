@@ -1,6 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 use ggez::{GameResult, Context, event::EventHandler, graphics::{self, Color, MeshBatch, MeshBuilder, DrawParam}, mint::Point2, timer};
 use crate::{load_config, SimulationConfig, Agent, WindowConfig, Vec2, Trail, Species, SpeciesConfig};
+use rayon::prelude::*;
 
 
 pub struct Engine {
@@ -70,12 +71,12 @@ impl EventHandler for Engine {
             agent.update(delta, &self.window_config, &mut self.trail)?;
 
             let draw_param = DrawParam::new()
-                .dest(agent.position);
+                .dest(Point2 { x: agent.position.x, y: agent.position.y });
             self.agent_meshbatch.add(draw_param);
         }
-
+        
         self.trail.update(ctx, &self.window_config, &self.simulation_config)?;
-            
+        
         return Ok(());
     }
 

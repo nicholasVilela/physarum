@@ -9,5 +9,9 @@ SpeciesConfig(
         g: 1.0,
         b: 1.0,
         a: 1.0,
-    )
+    ),
+    sensor_angle: 20.0,
+    sensor_distance: 2.0,
+    sensor_size: 1,
+    turn_speed: 20.0,
 )

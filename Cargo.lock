@@ -846,7 +846,7 @@ dependencies = [
  "gfx_core",
  "gfx_device_gl",
  "gilrs",
- "glam",
+ "glam 0.20.5",
  "glutin",
  "glyph_brush",
  "image",
@@ -925,6 +925,12 @@ checksum = "f43e957e744be03f5801a55472f593d43fabdebf25a4585db250f04d86b1675f"
 dependencies = [
  "mint",
 ]
+
+[[package]]
+name = "glam"
+version = "0.21.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "781aa11be58ef14b0cd7326618afcbd9cdb5ba686bdab7193d87cdc322cd7033"
 
 [[package]]
 name = "glob"
@@ -1802,6 +1808,7 @@ name = "physarum"
 version = "0.1.0"
 dependencies = [
  "ggez",
+ "glam 0.21.2",
  "rand",
  "rayon",
  "ron",
