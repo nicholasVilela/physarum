@@ -1,3 +1,4 @@
+use std::{borrow::Cow, mem};
 use ggez::{Context, GameResult, graphics::{DrawParam, Canvas}};
 use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config};
 
@@ -6,14 +7,25 @@ pub struct Simulation {
     pub agents: Vec<Agent>,
     pub trail: Trail,
     pub config: SimulationConfig,
-    pub window_config: WindowConfig
+    pub window_config: WindowConfig,
+
+    pub compute_pipeline: wgpu::ComputePipeline,
+    pub render_pipeline: wgpu::RenderPipeline,
+    pub compute_bind_group: wgpu::BindGroup,
+    pub render_bind_group: wgpu::BindGroup,
+    // pub agent_buffer: wgpu::Buffer,
+    // pub trail_buffer: wgpu::Buffer,
 }
 
 impl Simulation {
     pub fn new(ctx: &mut Context, config: SimulationConfig, window_config: WindowConfig) -> GameResult<Simulation> {
         let agents = Simulation::construct_agents(&config, &window_config)?;
         let trail = Trail::new(ctx, &window_config)?;
-        let simulation = Simulation { agents, trail, config, window_config };
+
+        let (compute_pipeline, compute_bind_group, agent_buffer) = Simulation::construct_compute_shader(ctx, &config)?;
+        let (render_pipeline, render_bind_group) = Simulation::construct_render_shader(ctx)?; 
+
+        let simulation = Simulation { agents, trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_bind_group };
 
         return Ok(simulation);
     }
@@ -63,5 +75,87 @@ impl Simulation {
         }
 
         return Ok(agents);
+    }
+
+    fn construct_compute_shader(ctx: &mut Context, simulation_config: &SimulationConfig) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup, wgpu::Buffer)> {
+        let device = ctx.gfx.wgpu().device;
+
+        let compute_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: Some("Compute Shader"),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/simulation.wgsl")))
+        });
+
+        let agent_bufsize = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
+        let agent_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Agent Buffer"),
+            usage: wgpu::BufferUsages::STORAGE,
+            size: agent_bufsize as _,
+            mapped_at_creation: false,
+        });
+
+        let compute_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Compute Bind Group"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(mem::size_of::<SimulationConfig> as _),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(agent_bufsize as _),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::StorageTexture {
+                        access: wgpu::StorageTextureAccess::WriteOnly,
+                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                    },
+                    count: None,
+                }
+            ],
+        });
+
+        let compute_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Compute Pipeline Layout"),
+            bind_group_layouts: &[&compute_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("Compute Pipeline"),
+            layout: Some(&compute_pipeline_layout),
+            module: &compute_shader,
+            entry_point: "main",
+        });
+
+        let bind_groups = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Bind Group"),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: simulation_config,
+                }
+            ],
+        });
+
+        return Ok(());
+    }
+
+    fn construct_render_shader(ctx: &mut Context) -> GameResult<(wgpu::RenderPipeline, wgpu::BindGroup)> {
+        return Ok(());
     }
 }
