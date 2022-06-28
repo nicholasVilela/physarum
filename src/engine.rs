@@ -1,8 +1,10 @@
-use ggez::{GameResult, Context, event::EventHandler, graphics::{self, TextFragment, Color, Text, InstanceArray, DrawParam}, mint::Point2, input::keyboard::{KeyCode}};
+use ggez::{GameResult, Context, event::EventHandler, graphics::{self, TextFragment, Color, Text, InstanceArray, DrawParam, Canvas}, mint::Point2, input::keyboard::{KeyCode}};
+use ggez_egui::{egui, EguiBackend};
 use crate::{load, SimulationConfig, Agent, WindowConfig, Trail, Species, SpeciesConfig};
 
 
 pub struct Engine {
+    egui_backend: EguiBackend,
     agents: Vec<Agent>,
     agent_meshbatch: InstanceArray,
     trail: Trail,
@@ -14,6 +16,7 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
+        let egui_backend = EguiBackend::default();
         let window_config = load::<WindowConfig>("window")?;
         let simulation_config = load::<SimulationConfig>("simulation")?;
         let agents = Engine::construct_agents(&window_config, &simulation_config)?;
@@ -27,7 +30,7 @@ impl Engine {
             graphics::FontData::from_path(ctx, "/fonts/BN6FontBold.ttf")?,
         );
 
-        let engine = Engine { agents, agent_meshbatch, trail, window_config , simulation_config, running, paused };
+        let engine = Engine { egui_backend, agents, agent_meshbatch, trail, window_config , simulation_config, running, paused };
 
         return Ok(engine);
     }
@@ -57,10 +60,30 @@ impl Engine {
 
         return Ok(trail);
     }
+
+    fn update_gui(&mut self, ctx: &mut Context) -> GameResult {
+        let egui_ctx = self.egui_backend.ctx();
+
+        self.egui_backend.update(ctx)?;
+        egui::Window::new("egui-window")
+            .show(&egui_ctx, |ui| {
+                ui.label("Settings");
+            });
+        
+        return Ok(());
+    }
+
+    fn render_gui(&mut self, canvas: &mut Canvas) -> GameResult {
+        canvas.draw(&self.egui_backend, DrawParam::default());
+
+        return Ok(());
+    }
 }
 
 impl EventHandler for Engine {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        self.update_gui(ctx)?;
+
         if ctx.keyboard.is_key_just_pressed(KeyCode::Space) { self.running = true; }
         if self.running && ctx.keyboard.is_key_just_pressed(KeyCode::P) { self.paused = !self.paused; }
         
@@ -124,6 +147,8 @@ impl EventHandler for Engine {
 
             canvas.draw(&fps_text, fps_draw_param);
         }
+
+        self.render_gui(&mut canvas)?;
 
         return canvas.finish(ctx);
     }
