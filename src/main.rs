@@ -1,22 +1,22 @@
 use ggez::{ContextBuilder, event, conf::WindowMode, GameResult};
 
-mod agent;
-pub use agent::*;
-
-mod config;
-pub use config::*;
-
-mod engine;
-pub use engine::*;
-
-mod enums;
-pub use enums::*;
-
-mod trail;
-pub use trail::*;
-
 #[cfg(test)]
 mod tests;
+
+mod agent;
+mod config;
+mod engine;
+mod enums;
+mod simulation;
+mod trail;
+
+pub use agent::*;
+pub use config::*;
+pub use engine::*;
+pub use enums::*;
+pub use simulation::*;
+pub use trail::*;
+
 
 
 fn main() -> GameResult {

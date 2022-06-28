@@ -14,7 +14,7 @@ impl fmt::Display for Species {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Pattern {
     Random,
     Center,

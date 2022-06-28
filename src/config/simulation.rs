@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use crate::{Pattern};
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig {
     pub agent_count: i32,
     pub evaporation_speed: u8,
