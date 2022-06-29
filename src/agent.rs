@@ -84,10 +84,10 @@ impl Agent {
             self.angle += (random_steer_strength + self.config.forward_random_strength) * 2.0  * turn_speed * delta.as_secs_f32();
         }
         else if weight_right > weight_left {
-            self.angle -= random_steer_strength * turn_speed * delta.as_secs_f32();
+            self.angle -= (random_steer_strength + self.config.right_random_strength) * turn_speed * delta.as_secs_f32();
         }
         else if weight_left > weight_right {
-            self.angle += random_steer_strength * turn_speed * delta.as_secs_f32();
+            self.angle += (random_steer_strength + self.config.left_random_strength) * turn_speed * delta.as_secs_f32();
         }
 
         let direction = Vec2::new(self.angle.cos(), self.angle.sin());

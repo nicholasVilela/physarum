@@ -24,7 +24,7 @@ fn main() -> GameResult {
     let window_mode = WindowMode::default().dimensions(window_config.width as f32, window_config.height as f32);
 
     let (mut ctx, event_loop) = ContextBuilder::new("Physarum", "nicholasVilela")
-        .add_resource_path("assets")
+        .add_resource_path("resources")
         .window_mode(window_mode)
         .build()
         .expect("Context could not be created.");

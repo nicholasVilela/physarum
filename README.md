@@ -1,6 +1,6 @@
 # Physarum Mold Simulation
 
-This project was written in Rust using the GGEZ framework.
+This project was written in Rust using the GGEZ framework to simulate Physarum Mold with variable properties.
 
 It's recommended to use `cargo run --release` for performance.
 

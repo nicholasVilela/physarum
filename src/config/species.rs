@@ -10,5 +10,7 @@ pub struct SpeciesConfig {
     pub sensor_size: i32,
     pub turn_speed: f32,
     pub forward_random_strength: f32,
+    pub right_random_strength: f32,
+    pub left_random_strength: f32,
     pub color: Color,
 }
