@@ -1,6 +1,7 @@
 use std::{borrow::Cow, mem};
 use ggez::{Context, GameResult, graphics::{DrawParam, Canvas, Color, LinearColor}};
 use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config};
+use glam::Vec2;
 
 
 pub struct Simulation {
@@ -13,7 +14,7 @@ pub struct Simulation {
     pub render_pipeline: wgpu::RenderPipeline,
     pub compute_bind_group: wgpu::BindGroup,
     pub render_bind_group: wgpu::BindGroup,
-    // pub agent_buffer: wgpu::Buffer,
+    pub agent_buffer: wgpu::Buffer,
     // pub trail_buffer: wgpu::Buffer,
 }
 
@@ -25,7 +26,7 @@ impl Simulation {
         let (compute_pipeline, compute_bind_group, agent_buffer, simulation_config_buffer) = Simulation::construct_compute_shader(ctx, &config)?;
         let (render_pipeline, render_bind_group) = Simulation::construct_render_shader(ctx, &config)?; 
 
-        let simulation = Simulation { agents, trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_bind_group };
+        let simulation = Simulation { agents, trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_bind_group, agent_buffer };
 
         return Ok(simulation);
     }
@@ -78,7 +79,8 @@ impl Simulation {
 
             pass.set_pipeline(&self.render_pipeline);
             pass.set_bind_group(0, &self.render_bind_group, &[]);
-            pass.draw(0..6, 0..500);
+            pass.set_vertex_buffer(0, self.agent_buffer.slice(..));
+            pass.draw(0..self.config.agent_count as u32, 0..1);
         }
 
         return Ok(());
@@ -220,19 +222,28 @@ impl Simulation {
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/render.wgsl")))
         });
 
+        let agent_bufsize = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
+        let agent_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Agent Buffer"),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::UNIFORM,
+            size: agent_bufsize as _,
+            mapped_at_creation: false,
+        });
+
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Render Bind Group Layout"),
             entries: &[
-                // wgpu::BindGroupLayoutEntry {
-                //     binding: 0,
-                //     visibility: wgpu::ShaderStages::VERTEX,
-                //     ty: wgpu::BindingType::Buffer {
-                //         ty: wgpu::BufferBindingType::Uniform,
-                //         has_dynamic_offset: false,
-                //         min_binding_size: wgpu::BufferSize::new(agent_bufsize as _),
-                //     },
-                //     count: None,
-                // },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        // ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(agent_bufsize as _),
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -250,9 +261,9 @@ impl Simulation {
                 entry_point: "vs_main",
                 buffers: &[
                     wgpu::VertexBufferLayout {
-                        array_stride: 6 * 4,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array![0 => Float32x2],
+                        array_stride: 0,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32],
                     }
                 ],
             },
@@ -263,7 +274,7 @@ impl Simulation {
                         format: ctx.gfx.surface_format(),
                         blend: None,
                         write_mask: wgpu::ColorWrites::ALL,
-                }]
+                }],
             }),
             multiview: None,
             multisample: wgpu::MultisampleState::default(),
@@ -274,7 +285,12 @@ impl Simulation {
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Render Bind Group"),
             layout: &bind_group_layout,
-            entries: &[],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: agent_buffer.as_entire_binding(),
+                },
+            ],
         });
 
         return Ok((render_pipeline, bind_group));
