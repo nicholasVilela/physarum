@@ -72,7 +72,7 @@ impl EventHandler for Engine {
         let mut canvas = graphics::Canvas::from_frame(ctx, background_color);
 
         if self.running {
-            self.simulation.render(&mut canvas)?;
+            self.simulation.render(ctx, &mut canvas)?;
 
             // if self.simulation_config.render_agents {
             //     canvas.draw(&self.agent_meshbatch, DrawParam::default());
