@@ -8,11 +8,11 @@ fn vs_main(
     [[location(0)]] position: vec2<f32>,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.position = vec4(position, 1, 1);
+    out.position = vec4<f32>(position, 1.0, 1.0);
     return out;
 }
 
 [[stage(fragment)]]
-fn main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
     return vec4<f32>(in.position.z, in.position.z, in.position.z, 1.0);
 }

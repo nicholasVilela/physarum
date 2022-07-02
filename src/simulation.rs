@@ -137,10 +137,11 @@ impl Simulation {
             mapped_at_creation: false,
         });
 
+        let simulation_config_buffer_size = mem::size_of::<SimulationConfig>() as u64;
         let simulation_config_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Simulation Config Buffer"),
             usage: wgpu::BufferUsages::UNIFORM,
-            size: mem::size_of::<SimulationConfig>() as _,
+            size: simulation_config_buffer_size,
             mapped_at_creation: false,
         });
 
@@ -153,7 +154,7 @@ impl Simulation {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(mem::size_of::<SimulationConfig> as _),
+                        min_binding_size: wgpu::BufferSize::new(simulation_config_buffer_size),
                     },
                     count: None,
                 },
