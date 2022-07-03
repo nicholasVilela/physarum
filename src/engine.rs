@@ -73,11 +73,6 @@ impl EventHandler for Engine {
 
         if self.running {
             self.simulation.render(ctx, &mut canvas)?;
-
-            // if self.simulation_config.render_agents {
-            //     canvas.draw(&self.agent_meshbatch, DrawParam::default());
-            //     self.agent_meshbatch.clear();
-            // }
         }
         else {
             self.render_intro_text(&mut canvas)?;

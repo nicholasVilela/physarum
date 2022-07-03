@@ -3,13 +3,16 @@ use rand::{Rng};
 use ggez::{GameResult};
 use crate::{WindowConfig, Trail, SpeciesConfig, Species, Pattern, SimulationConfig};
 use glam::{Vec2};
+use bytemuck::{Pod, Zeroable};
 
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, Zeroable)]
 pub struct Agent {
     // pub species: Species,
     // pub config: SpeciesConfig,
     // pub mask: UVec3,
-    pub position: Vec2,
+    pub position: [f32; 2],
     pub angle: f32,
 }
 
@@ -112,7 +115,7 @@ impl Agent {
         return Ok(());
     }
 
-    pub fn calculate_position<R: Rng + ?Sized>(pattern: &Pattern, window_config: &WindowConfig, rng: &mut R) -> GameResult<Vec2> {
+    pub fn calculate_position<R: Rng + ?Sized>(pattern: &Pattern, window_config: &WindowConfig, rng: &mut R) -> GameResult<[f32; 2]> {
         let mut position = Vec2::new(0.0, 0.0);
 
         match pattern {
@@ -131,6 +134,6 @@ impl Agent {
             }
         };
 
-        return Ok(position);
+        return Ok([position.x, position.y]);
     }
 }

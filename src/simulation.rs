@@ -1,7 +1,7 @@
 use std::{borrow::Cow, mem};
-use ggez::{Context, GameResult, graphics::{DrawParam, Canvas, Color, LinearColor}};
+use ggez::{Context, GameResult, graphics::{Canvas, Color, LinearColor}};
 use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config};
-use glam::Vec2;
+use wgpu::util::DeviceExt;
 
 
 pub struct Simulation {
@@ -23,7 +23,7 @@ impl Simulation {
         let agents = Simulation::construct_agents(&config, &window_config)?;
         let trail = Trail::new(ctx, &window_config)?;
 
-        let (compute_pipeline, compute_bind_group, agent_buffer, simulation_config_buffer) = Simulation::construct_compute_shader(ctx, &config)?;
+        let (compute_pipeline, compute_bind_group, agent_buffer, simulation_config_buffer) = Simulation::construct_compute_shader(ctx, &config, &agents)?;
         let (render_pipeline, render_bind_group) = Simulation::construct_render_shader(ctx, &config)?; 
 
         let simulation = Simulation { agents, trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_bind_group, agent_buffer };
@@ -55,7 +55,7 @@ impl Simulation {
         return Ok(());
     }
 
-    pub fn render(&mut self, ctx: &mut Context, canvas: &mut Canvas) -> GameResult {
+    pub fn render(&mut self, ctx: &mut Context, _canvas: &mut Canvas) -> GameResult {
         let device = &ctx.gfx.wgpu().device;
         let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         let frame = ctx.gfx.frame().clone();
@@ -85,29 +85,6 @@ impl Simulation {
 
         return Ok(());
     }
-
-    // pub fn update(&mut self, ctx: &mut Context) -> GameResult {
-    //     let delta = ctx.time.delta();
-
-    //     for agent in &mut self.agents {
-    //         agent.update(delta, &self.window_config, &mut self.trail)?;
-
-    //         // if self.config.render_agents { 
-    //         //     let draw_param = DrawParam::new()
-    //         //         .dest(Point2 { x: agent.position.x, y: agent.position.y });
-    //         //     self.agent_meshbatch.push(draw_param);
-    //         // }
-    //     }
-    //     self.trail.update(ctx, &self.window_config, &self.config)?;
-
-    //     return Ok(());
-    // }
-
-    // pub fn render(&mut self, canvas: &mut Canvas) -> GameResult {
-    //     canvas.draw(&self.trail.map, DrawParam::default());
-
-    //     return Ok(());
-    // }
 
     fn construct_agents(simulation_config: &SimulationConfig, window_config: &WindowConfig) -> GameResult<Vec<Agent>> {
         let mut agents = Vec::new();
@@ -214,7 +191,7 @@ impl Simulation {
         return Ok((compute_pipeline, bind_group, agent_buffer, simulation_config_buffer));
     }
 
-    fn construct_render_shader(ctx: &mut Context, simulation_config: &SimulationConfig) -> GameResult<(wgpu::RenderPipeline, wgpu::BindGroup)> {
+    fn construct_render_shader(ctx: &mut Context, simulation_config: &SimulationConfig, agents: &Vec<Agent>) -> GameResult<(wgpu::RenderPipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
         let render_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
@@ -223,11 +200,15 @@ impl Simulation {
         });
 
         let agent_bufsize = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
-        let agent_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        // let agent_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        //     label: Some("Agent Buffer"),
+        //     usage: wgpu::BufferUsages::UNIFORM,
+        //     size: agent_bufsize as _,
+        //     mapped_at_creation: false,
+        // });
+        let agent_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Agent Buffer"),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::UNIFORM,
-            size: agent_bufsize as _,
-            mapped_at_creation: false,
+            contents: bytemuck::cast_slice(agents)
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -295,4 +276,27 @@ impl Simulation {
 
         return Ok((render_pipeline, bind_group));
     }
+
+    // pub fn update(&mut self, ctx: &mut Context) -> GameResult {
+    //     let delta = ctx.time.delta();
+
+    //     for agent in &mut self.agents {
+    //         agent.update(delta, &self.window_config, &mut self.trail)?;
+
+    //         // if self.config.render_agents { 
+    //         //     let draw_param = DrawParam::new()
+    //         //         .dest(Point2 { x: agent.position.x, y: agent.position.y });
+    //         //     self.agent_meshbatch.push(draw_param);
+    //         // }
+    //     }
+    //     self.trail.update(ctx, &self.window_config, &self.config)?;
+
+    //     return Ok(());
+    // }
+
+    // pub fn render(&mut self, canvas: &mut Canvas) -> GameResult {
+    //     canvas.draw(&self.trail.map, DrawParam::default());
+
+    //     return Ok(());
+    // }
 }
