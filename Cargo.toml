@@ -14,4 +14,4 @@ rand = "0.8"
 stackblur = "0.1.0"
 glam = "0.21"
 wgpu = "0.12"
-bytemuck = "1.4"
+bytemuck = { version = "1.4", features = ["derive"] }
