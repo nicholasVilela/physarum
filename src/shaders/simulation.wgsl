@@ -14,10 +14,10 @@ struct Agents {
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var index = global_id.x;
 
-    var target_position = agent_src.agents[index].position;
-    var target_angle = agent_src.agents[index].angle;
+    var agent = agent_src.agents[index];
 
-    target_position.x = target_position.x + 0.1;
+    var next_position = agent.position + vec2<f32>(1.0, 0.0);
+    var next_angle = agent.angle;
 
-    agent_dst.agents[index] = Agent(vec2<f32>(0.0, 0.0), target_angle);
+    agent_dst.agents[index] = Agent(next_position, next_angle);
 }

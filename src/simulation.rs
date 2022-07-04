@@ -231,7 +231,6 @@ impl Simulation {
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
-            // primitive: wgpu::PrimitiveState::default(),
         });
 
         return Ok((render_pipeline));
