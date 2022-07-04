@@ -69,19 +69,15 @@ impl EventHandler for Engine {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let background_color = self.window_config.background;
-        let mut canvas = graphics::Canvas::from_frame(ctx, background_color);
+        let mut canvas = graphics::Canvas::from_frame(ctx, background_color);  
 
-        if self.running {
-            self.simulation.render(ctx, &mut canvas)?;
-        }
-        else {
-            self.render_intro_text(&mut canvas)?;
-        }
+        if self.running { self.simulation.render(ctx)?; }
+        else { self.render_intro_text(&mut canvas)?; }
+        
+        if self.window_config.show_fps { self.render_fps(ctx, &mut canvas)?; }
+        
+        canvas.finish(ctx)?;
 
-        if self.window_config.show_fps {
-            self.render_fps(ctx, &mut canvas)?;
-        }
-
-        return canvas.finish(ctx);
+        return Ok(());
     }
 }
