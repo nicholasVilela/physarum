@@ -33,7 +33,7 @@ impl Simulation {
     }
 
     pub fn reset(&mut self, ctx: &mut Context) -> GameResult {
-        let agents = Simulation::construct_agents(&self.config, &self.window_config)?;
+        // let agents = Simulation::construct_agents(&self.config, &self.window_config)?;
         let trail = Trail::new(ctx, &self.window_config)?;
 
         self.trail = trail;
@@ -107,21 +107,6 @@ impl Simulation {
             label: Some("Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/simulation.wgsl")))
         });
-
-        // let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
-        // let mut agent_buffers = Vec::<wgpu::Buffer>::new();
-        // for i in 0..2 {
-        //     let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //         label: Some(&format!("Agent Buffer {}", i)),
-        //         contents: bytemuck::cast_slice(&agents),
-        //         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-        //     });
-
-        //     agent_buffers.push(buffer);
-        // }
-
-        // let agent_data = vec![0.; (3 * simulation_config[0].agent_count) as usize];
-        // for data in agent_data.chunks_mut(3) 
 
         let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
         let mut agent_buffers = Vec::<wgpu::Buffer>::new();
@@ -237,7 +222,16 @@ impl Simulation {
             multiview: None,
             multisample: wgpu::MultisampleState::default(),
             depth_stencil: None,
-            primitive: wgpu::PrimitiveState::default(),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::PointList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            // primitive: wgpu::PrimitiveState::default(),
         });
 
         return Ok((render_pipeline));
