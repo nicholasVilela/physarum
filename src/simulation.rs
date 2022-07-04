@@ -56,33 +56,30 @@ impl Simulation {
     }
 
     pub fn render(&mut self, ctx: &mut Context) -> GameResult {
-        let device = &ctx.gfx.wgpu().device;
-        let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        // let device = &ctx.gfx.wgpu().device;
+        // let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         let frame = ctx.gfx.frame().clone();
-        // let command_encoder = ctx.gfx.commands().unwrap();
+        let command_encoder = ctx.gfx.commands().unwrap();
 
-        {
-            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
-                    view: frame.wgpu().1,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(
-                            LinearColor::from(Color::new(1.0, 0.1, 0.1, 1.0))
-                                .into(),
-                        ),
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
+        let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view: frame.wgpu().1,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(
+                        LinearColor::from(Color::new(0.0, 0.0, 0.0, 1.0))
+                            .into(),
+                    ),
+                    store: true,
+                },
+            }],
+            depth_stencil_attachment: None,
+        });
 
-            pass.set_pipeline(&self.render_pipeline);
-            // pass.set_bind_group(0, &self.render_bind_group, &[]);
-            pass.set_vertex_buffer(0, self.agent_buffers[(self.frame + 1) % 2].slice(..));
-            pass.draw(0..1, 0..self.config.agent_count as u32);
-        }
+        pass.set_pipeline(&self.render_pipeline);
+        pass.set_vertex_buffer(0, self.agent_buffers[(self.frame + 1) % 2].slice(..));
+        pass.draw(0..1, 0..self.config.agent_count as u32);
 
         self.frame += 1;
 
@@ -110,6 +107,21 @@ impl Simulation {
             label: Some("Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/simulation.wgsl")))
         });
+
+        // let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
+        // let mut agent_buffers = Vec::<wgpu::Buffer>::new();
+        // for i in 0..2 {
+        //     let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //         label: Some(&format!("Agent Buffer {}", i)),
+        //         contents: bytemuck::cast_slice(&agents),
+        //         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        //     });
+
+        //     agent_buffers.push(buffer);
+        // }
+
+        // let agent_data = vec![0.; (3 * simulation_config[0].agent_count) as usize];
+        // for data in agent_data.chunks_mut(3) 
 
         let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
         let mut agent_buffers = Vec::<wgpu::Buffer>::new();

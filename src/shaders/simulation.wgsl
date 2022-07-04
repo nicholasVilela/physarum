@@ -19,5 +19,5 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     target_position.x = target_position.x + 0.1;
 
-    agent_dst.agents[index] = Agent(target_position, target_angle);
+    agent_dst.agents[index] = Agent(vec2<f32>(0.0, 0.0), target_angle);
 }

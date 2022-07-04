@@ -52,15 +52,15 @@ impl Engine {
 
 impl EventHandler for Engine {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if ctx.keyboard.is_key_just_pressed(KeyCode::Space) { self.running = true; }
-        if self.running && ctx.keyboard.is_key_just_pressed(KeyCode::P) { self.paused = !self.paused; }
+        // if ctx.keyboard.is_key_just_pressed(KeyCode::Space) { self.running = true; }
+        // if self.running && ctx.keyboard.is_key_just_pressed(KeyCode::P) { self.paused = !self.paused; }
         
-        if !self.running || self.paused { return Ok(()); }
+        // if !self.running || self.paused { return Ok(()); }
 
-        if ctx.keyboard.is_key_just_pressed(KeyCode::R) { 
-            self.simulation.reset(ctx)?;
-            self.paused = false;
-         }
+        // if ctx.keyboard.is_key_just_pressed(KeyCode::R) { 
+        //     self.simulation.reset(ctx)?;
+        //     self.paused = false;
+        //  }
         
         self.simulation.update(ctx)?;
 
@@ -68,15 +68,17 @@ impl EventHandler for Engine {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let background_color = self.window_config.background;
-        let mut canvas = graphics::Canvas::from_frame(ctx, background_color);  
+        // let background_color = self.window_config.background;
+        // let mut canvas = graphics::Canvas::from_frame(ctx, background_color);  
 
-        if self.running { self.simulation.render(ctx)?; }
-        else { self.render_intro_text(&mut canvas)?; }
+        // if self.running { self.simulation.render(ctx)?; }
+        // else { self.render_intro_text(&mut canvas)?; }
         
-        if self.window_config.show_fps { self.render_fps(ctx, &mut canvas)?; }
+        // if self.window_config.show_fps { self.render_fps(ctx, &mut canvas)?; }
         
-        canvas.finish(ctx)?;
+        // canvas.finish(ctx)?;
+
+        self.simulation.render(ctx)?;
 
         return Ok(());
     }
