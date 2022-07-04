@@ -42,16 +42,6 @@ impl Simulation {
     }
 
     pub fn update(&mut self, ctx: &mut Context) -> GameResult {
-        let device = &ctx.gfx.wgpu().device;
-        let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        {
-            let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-            pass.set_pipeline(&self.compute_pipeline);
-            pass.set_bind_group(0, &self.compute_bind_groups[self.frame % 2], &[]);
-            pass.dispatch(32, 1, 1);
-        }
-
         return Ok(());
     }
 
@@ -61,26 +51,32 @@ impl Simulation {
         let frame = ctx.gfx.frame().clone();
         let command_encoder = ctx.gfx.commands().unwrap();
 
-        let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[wgpu::RenderPassColorAttachment {
-                view: frame.wgpu().1,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(
-                        LinearColor::from(Color::new(0.0, 0.0, 0.0, 1.0))
-                            .into(),
-                    ),
-                    store: true,
-                },
-            }],
-            depth_stencil_attachment: None,
-        });
+        {
+            let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            pass.set_pipeline(&self.compute_pipeline);
+            pass.set_bind_group(0, &self.compute_bind_groups[self.frame % 2], &[]);
+            pass.dispatch(32, 1, 1);
+        }
 
-        pass.set_pipeline(&self.render_pipeline);
-        pass.set_vertex_buffer(0, self.agent_buffers[(self.frame + 1) % 2].slice(..));
-        pass.draw(0..1, 0..self.config.agent_count as u32);
+        {
+            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[wgpu::RenderPassColorAttachment {
+                    view: frame.wgpu().1,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    },
+                }],
+                depth_stencil_attachment: None,
+            }); 
 
+            pass.set_pipeline(&self.render_pipeline);
+            pass.set_vertex_buffer(0, self.agent_buffers[(self.frame + 1) % 2].slice(..));
+            pass.draw(0..1, 0..self.config.agent_count as u32);
+        }
+        
         self.frame += 1;
 
         return Ok(());
@@ -162,7 +158,7 @@ impl Simulation {
         let mut bind_groups = Vec::<wgpu::BindGroup>::new();
         for i in 0..2 {
             let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("Compute Bind Group"),
+                label: Some(&format!("Compute Bind Group {}", i)),
                 layout: &compute_bind_group_layout,
                 entries: &[
                     wgpu::BindGroupEntry {
@@ -220,8 +216,8 @@ impl Simulation {
                 }],
             }),
             multiview: None,
-            multisample: wgpu::MultisampleState::default(),
             depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::PointList,
                 strip_index_format: None,

@@ -16,7 +16,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     var agent = agent_src.agents[index];
 
-    var next_position = agent.position + vec2<f32>(1.0, 0.0);
+    var next_position = agent.position + vec2<f32>(0.00005, 0.0);
     var next_angle = agent.angle;
 
     agent_dst.agents[index] = Agent(next_position, next_angle);
