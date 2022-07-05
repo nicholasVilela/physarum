@@ -1,11 +1,9 @@
+use ggez::{GameResult};
+
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct SimulationParams {
-
-}
-
-impl SimulationParams {
-    pub fn new(device: &wgpu::Device) -> GameResult<SimulationParams> {
-        let simulation_params = SimulationParams {};
-
-        return Ok(simulation_params);
-    }
+    pub delta_time: f32,
+    pub frame: u32,
 }

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, mem};
 use ggez::{Context, GameResult, graphics::{Canvas, Color, LinearColor}};
-use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config};
+use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, SimulationParams};
 use wgpu::util::DeviceExt;
 
 
@@ -13,10 +13,9 @@ pub struct Simulation {
     pub render_pipeline: wgpu::RenderPipeline,
     pub compute_bind_groups: Vec<wgpu::BindGroup>,
     pub agent_buffers: Vec<wgpu::Buffer>,
+    pub simulation_params_buffer: wgpu::Buffer,
 
     pub frame: usize,
-    // pub render_bind_group: wgpu::BindGroup,
-    // pub trail_buffer: wgpu::Buffer,
 }
 
 impl Simulation {
@@ -24,10 +23,10 @@ impl Simulation {
         let agents = Simulation::construct_agents(&config, &window_config)?;
         let trail = Trail::new(ctx, &window_config)?;
 
-        let (compute_pipeline, compute_bind_groups, agent_buffers) = Simulation::construct_compute_shader(ctx, &vec![config], agents)?;
+        let (compute_pipeline, compute_bind_groups, agent_buffers, simulation_params_buffer) = Simulation::construct_compute_shader(ctx, &vec![config], agents)?;
         let (render_pipeline) = Simulation::construct_render_shader(ctx)?; 
 
-        let simulation = Simulation { trail, config, window_config, compute_pipeline, compute_bind_groups, render_pipeline, agent_buffers ,frame: 0 };
+        let simulation = Simulation { trail, config, window_config, compute_pipeline, compute_bind_groups, render_pipeline, agent_buffers, simulation_params_buffer ,frame: 0 };
 
         return Ok(simulation);
     }
@@ -46,19 +45,28 @@ impl Simulation {
     }
 
     pub fn render(&mut self, ctx: &mut Context) -> GameResult {
-        // let device = &ctx.gfx.wgpu().device;
-        // let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         let frame = ctx.gfx.frame().clone();
-        let command_encoder = ctx.gfx.commands().unwrap();
+
+        let delta_time = ctx.time.delta().as_secs_f32();
+        let simulation_params = [SimulationParams { delta_time, frame: self.frame as u32 }];
+
+        ctx.gfx.wgpu().queue.write_buffer(&self.simulation_params_buffer, 0, bytemuck::cast_slice(&simulation_params));
 
         {
+            let command_encoder = ctx.gfx.commands().unwrap();
+            
             let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             pass.set_pipeline(&self.compute_pipeline);
             pass.set_bind_group(0, &self.compute_bind_groups[self.frame % 2], &[]);
-            pass.dispatch(32, 1, 1);
+            // pass.set_bind_group(0, &self.compute_bind_groups[0], &[]);
+            // pass.dispatch(32, 1, 1);
+            let work_group_count = (self.config.agent_count as f32 / 32.0).ceil() as u32;
+            pass.dispatch(work_group_count, 1, 1);
         }
 
         {
+            let command_encoder = ctx.gfx.commands().unwrap();
+
             let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[wgpu::RenderPassColorAttachment {
@@ -74,6 +82,7 @@ impl Simulation {
 
             pass.set_pipeline(&self.render_pipeline);
             pass.set_vertex_buffer(0, self.agent_buffers[(self.frame + 1) % 2].slice(..));
+            // pass.set_vertex_buffer(0, self.agent_buffers[0].slice(..));
             pass.draw(0..1, 0..self.config.agent_count as u32);
         }
         
@@ -96,7 +105,7 @@ impl Simulation {
         return Ok(agents);
     }
 
-    fn construct_compute_shader(ctx: &mut Context, simulation_config: &Vec<SimulationConfig>, agents: Vec<Agent>) -> GameResult<(wgpu::ComputePipeline, Vec<wgpu::BindGroup>, Vec<wgpu::Buffer>)> {
+    fn construct_compute_shader(ctx: &mut Context, simulation_config: &Vec<SimulationConfig>, agents: Vec<Agent>) -> GameResult<(wgpu::ComputePipeline, Vec<wgpu::BindGroup>, Vec<wgpu::Buffer>, wgpu::Buffer)> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
@@ -116,11 +125,33 @@ impl Simulation {
             agent_buffers.push(buffer);
         }
 
+        let simulation_params = [
+            SimulationParams {
+                delta_time: 0.004,
+                frame: 0,
+            }
+        ];
+        let simulation_params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Simulation Params Buffer"),
+            contents: bytemuck::cast_slice(&simulation_params),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
         let compute_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Compute Bind Group Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(mem::size_of::<SimulationParams>() as _),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -130,7 +161,7 @@ impl Simulation {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1,
+                    binding: 2,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -163,10 +194,14 @@ impl Simulation {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: agent_buffers[i].as_entire_binding(),
+                        resource: simulation_params_buffer.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
+                        resource: agent_buffers[i].as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
                         resource: agent_buffers[(i + 1) % 2].as_entire_binding(),
                     }
                 ],
@@ -175,7 +210,7 @@ impl Simulation {
             bind_groups.push(bind_group);
         }
 
-        return Ok((compute_pipeline, bind_groups, agent_buffers));
+        return Ok((compute_pipeline, bind_groups, agent_buffers, simulation_params_buffer));
     }
 
     fn construct_render_shader(ctx: &mut Context) -> GameResult<(wgpu::RenderPipeline)> {

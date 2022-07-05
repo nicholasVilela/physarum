@@ -19,9 +19,11 @@ pub struct Agent {
 impl Agent {
     pub fn new<R: Rng + ?Sized>(species: Species, species_config: SpeciesConfig, window_config: &WindowConfig, simulation_config: &SimulationConfig,  rng: &mut R) -> GameResult<Agent> {
         let angle = rng.gen::<f32>() * TAU;
+        // let angle = rng.gen::<f32>();
+        // let angle = 0.0;
         let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
         // let position = Agent::calculate_position(&simulation_config.pattern, window_config, rng)?;
-        // let position = [1.0, 0.0];
+        // let position = [0.0, 0.0];
         
         // let species_id = rng.gen_range(1..simulation_config.species_count + 1);
         // let index = species_id - 1;
@@ -35,7 +37,7 @@ impl Agent {
             // species,
             // config: species_config,
             position,
-            angle: angle,
+            angle,
             // mask,
         };
 
