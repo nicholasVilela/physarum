@@ -12,8 +12,9 @@ pub struct Agent {
     // pub species: Species,
     // pub config: SpeciesConfig,
     // pub mask: UVec3,
-    pub position: [f32; 2],
-    pub angle: f32,
+    // pub position: [f32; 2],
+    // pub angle: f32,
+    pub data: [f32; 4],
 }
 
 impl Agent {
@@ -21,7 +22,7 @@ impl Agent {
         let angle = rng.gen::<f32>() * TAU;
         // let angle = rng.gen::<f32>();
         // let angle = 0.0;
-        let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
+        let data = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), angle, 0.0];
         // let position = Agent::calculate_position(&simulation_config.pattern, window_config, rng)?;
         // let position = [0.0, 0.0];
         
@@ -36,8 +37,9 @@ impl Agent {
         let agent = Agent {
             // species,
             // config: species_config,
-            position,
-            angle,
+            // position,
+            data,
+            // angle,
             // mask,
         };
 
@@ -45,14 +47,14 @@ impl Agent {
     }
 
     fn sense(&mut self, sensor_angle_offset: f32, trail: &Trail,  window_config: &WindowConfig) -> GameResult<f32> {
-        let width = window_config.width;
-        let height = window_config.height;
+        // let width = window_config.width;
+        // let height = window_config.height;
 
-        let sensor_angle = self.angle + sensor_angle_offset;
-        let sensor_direction = Vec2::new(sensor_angle.cos(), sensor_angle.sin());
-        // let sensor_position = self.position + sensor_direction * self.config.sensor_distance;
+        // let sensor_angle = self.angle + sensor_angle_offset;
+        // let sensor_direction = Vec2::new(sensor_angle.cos(), sensor_angle.sin());
+        // // let sensor_position = self.position + sensor_direction * self.config.sensor_distance;
         
-        let mut sum = 0.0;
+        // let mut sum = 0.0;
         // let sense_weight = self.mask * 2 - 1;
 
         // for offset_x in -self.config.sensor_size..self.config.sensor_size + 1 {
@@ -67,7 +69,7 @@ impl Agent {
         //     }
         // }
 
-        return Ok(sum);
+        return Ok(0.0);
     }
 
     pub fn update(&mut self, delta: Duration, window_config: &WindowConfig, trail: &mut Trail) -> GameResult {
