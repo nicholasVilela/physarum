@@ -1,6 +1,6 @@
 use std::{borrow::Cow, mem};
 use ggez::{Context, GameResult, graphics::{Canvas, Color, LinearColor}};
-use crate::{Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, SimulationParams};
+use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, SimulationParams};
 use wgpu::util::DeviceExt;
 
 
@@ -101,10 +101,7 @@ impl Simulation {
     fn construct_compute_shader(ctx: &mut Context, window_config: &WindowConfig, simulation_config: &Vec<SimulationConfig>, agents: Vec<Agent>) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup, wgpu::Buffer, wgpu::Buffer)> {
         let device = &ctx.gfx.wgpu().device;
 
-        let compute_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: Some("Compute Shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/update_agents.wgsl")))
-        });
+        let compute_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_agents.wgsl"))?;
 
         let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
         let agent_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -113,7 +110,7 @@ impl Simulation {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
         });
 
-        let map = vec![0.0; (window_config.width * window_config.height) as usize];
+        let map: Vec<f32> = vec![0.0; (window_config.width * window_config.height) as usize];
         let map_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Map Buffer"),
             contents: bytemuck::cast_slice(&map),
@@ -168,11 +165,7 @@ impl Simulation {
             ],
         });
 
-        let compute_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Compute Pipeline Layout"),
-            bind_group_layouts: &[&compute_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let compute_pipeline_layout = util::construct_pipeline_layout(device, "Compute Pipeline Layout", &vec![&compute_bind_group_layout], &vec![])?;
 
         let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("Compute Pipeline"),
@@ -206,21 +199,13 @@ impl Simulation {
     fn construct_render_shader(ctx: &mut Context) -> GameResult<(wgpu::RenderPipeline)> {
         let device = &ctx.gfx.wgpu().device;
 
-        let render_shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: Some("Render Shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/render_agents.wgsl")))
-        });
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[],
-            push_constant_ranges: &[],
-        });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
+        let render_shader = util::construct_shader_module(device, "Render Shader", include_str!("shaders/render_agents.wgsl"))?;
+        let pipeline_layout = util::construct_pipeline_layout(device, "Render Pipeline Layout", &vec![], &vec![])?;
+        let render_pipeline = util::construct_render_pipeline(
+            device, 
+            "Render Pipeline", 
+            Some(&pipeline_layout), 
+            wgpu::VertexState {
                 module: &render_shader,
                 entry_point: "main_vs",
                 buffers: &[
@@ -228,10 +213,10 @@ impl Simulation {
                         array_stride: 16,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &wgpu::vertex_attr_array![0 => Float32x4],
-                    }
+                    },
                 ],
             },
-            fragment: Some(wgpu::FragmentState {
+            Some(wgpu::FragmentState {
                 module: &render_shader,
                 entry_point: "main_fs",
                 targets: &[wgpu::ColorTargetState {
@@ -240,10 +225,10 @@ impl Simulation {
                         write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
-            multiview: None,
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            primitive: wgpu::PrimitiveState {
+            None,
+            None,
+            wgpu::MultisampleState::default(),
+            wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::PointList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
@@ -252,7 +237,7 @@ impl Simulation {
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
             },
-        });
+        )?;
 
         return Ok((render_pipeline));
     }
