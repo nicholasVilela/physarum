@@ -184,7 +184,7 @@ impl Simulation {
                     wgpu::VertexBufferLayout {
                         array_stride: 16,
                         step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array![0 => Float32x4],
+                        attributes: &wgpu::vertex_attr_array![0 => Float32x2],
                     },
                 ],
             },
