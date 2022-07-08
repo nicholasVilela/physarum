@@ -60,9 +60,7 @@ impl EventHandler for Engine {
         if ctx.keyboard.is_key_just_pressed(KeyCode::R) { 
             self.simulation.reset(ctx)?;
             self.paused = false;
-         }
-        
-        // self.simulation.update(ctx)?;
+        }
 
         return Ok(());
     }

@@ -1,4 +1,4 @@
-use std::{f32::consts::{TAU, PI}, time::Duration};
+use std::{f32::consts::{TAU}, time::Duration};
 use rand::{Rng};
 use ggez::{GameResult};
 use crate::{WindowConfig, Trail, SpeciesConfig, Species, Pattern, SimulationConfig};

@@ -1,6 +1,3 @@
-use ggez::{GameResult};
-
-
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct SimulationParams {
