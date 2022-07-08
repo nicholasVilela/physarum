@@ -77,3 +77,22 @@ pub fn construct_buffer_init<T: bytemuck::Pod>(device: &wgpu::Device, label: &st
 
     return Ok(buffer);
 }
+
+pub fn construct_bind_group_layout(device: &wgpu::Device, label: &str, entries: &[wgpu::BindGroupLayoutEntry]) -> GameResult<wgpu::BindGroupLayout> {
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some(label),
+        entries,
+    });
+
+    return Ok(bind_group_layout);
+}
+
+pub fn construct_bind_group(device: &wgpu::Device, label: &str, layout: &wgpu::BindGroupLayout, entries: &[wgpu::BindGroupEntry]) -> GameResult<wgpu::BindGroup> {
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some(label),
+        layout,
+        entries,
+    });
+
+    return Ok(bind_group);
+}
