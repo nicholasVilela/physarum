@@ -1,6 +1,7 @@
 use std::num::NonZeroU32;
 use std::{borrow::Cow};
 use ggez::{GameResult};
+use wgpu::util::DeviceExt;
 
 
 pub fn construct_shader_module(
@@ -56,12 +57,23 @@ pub fn construct_render_pipeline(
     return Ok(render_pipeline);
 }
 
-pub fn construct_vertex_state<'a>(module: &'a wgpu::ShaderModule, entry_point: &'a str, buffers: &'static Vec<wgpu::VertexBufferLayout>) -> GameResult<wgpu::VertexState<'a>> {
-    let vertex_state = wgpu::VertexState {
+pub fn construct_compute_pipeline(device: &wgpu::Device, label: &str, layout: Option<&wgpu::PipelineLayout>, module: &wgpu::ShaderModule, entry_point: &str) -> GameResult<wgpu::ComputePipeline> {
+    let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some(label),
+        layout,
         module,
         entry_point,
-        buffers,
-    };
+    });
 
-    return Ok(vertex_state);
+    return Ok(compute_pipeline);
+}
+
+pub fn construct_buffer_init<T: bytemuck::Pod>(device: &wgpu::Device, label: &str, data: &Vec<T>, usage: wgpu::BufferUsages) -> GameResult<wgpu::Buffer> {
+    let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: bytemuck::cast_slice(data),
+        usage,
+    });
+
+    return Ok(buffer);
 }

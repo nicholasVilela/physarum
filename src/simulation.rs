@@ -104,11 +104,12 @@ impl Simulation {
         let compute_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_agents.wgsl"))?;
 
         let agent_bufsize = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
-        let agent_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Agent Buffer"),
-            contents: bytemuck::cast_slice(&agents),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
-        });
+        // let agent_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //     label: Some("Agent Buffer"),
+        //     contents: bytemuck::cast_slice(&agents),
+        //     usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
+        // });
+        let agent_buffer = util::construct_buffer_init::<Agent>(device, "Agent Buffer", &agents, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
 
         let map: Vec<f32> = vec![0.0; (window_config.width * window_config.height) as usize];
         let map_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -166,13 +167,7 @@ impl Simulation {
         });
 
         let compute_pipeline_layout = util::construct_pipeline_layout(device, "Compute Pipeline Layout", &vec![&compute_bind_group_layout], &vec![])?;
-
-        let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Compute Pipeline"),
-            layout: Some(&compute_pipeline_layout),
-            module: &compute_shader,
-            entry_point: "main",
-        });
+        let compute_pipeline = util::construct_compute_pipeline(device, "Compute Pipeline", Some(&compute_pipeline_layout), &compute_shader, "main")?;
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Compute Bind Group"),
