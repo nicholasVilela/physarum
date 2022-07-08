@@ -9,38 +9,21 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Agent {
-    // pub species: Species,
-    // pub config: SpeciesConfig,
-    // pub mask: UVec3,
-    // pub position: [f32; 2],
-    // pub angle: f32,
-    pub data: [f32; 4],
+    pub position: [f32; 2],
+    pub angle: f32,
+    pub species: f32,
+    // pub data: [f32; 4],
 }
 
 impl Agent {
     pub fn new<R: Rng + ?Sized>(species: Species, species_config: SpeciesConfig, window_config: &WindowConfig, simulation_config: &SimulationConfig,  rng: &mut R) -> GameResult<Agent> {
         let angle = rng.gen::<f32>() * TAU;
-        // let angle = rng.gen::<f32>();
-        // let angle = 0.0;
-        let data = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), angle, 0.0];
-        // let position = Agent::calculate_position(&simulation_config.pattern, window_config, rng)?;
-        // let position = [0.0, 0.0];
-        
-        // let species_id = rng.gen_range(1..simulation_config.species_count + 1);
-        // let index = species_id - 1;
-        // let mask = UVec3::new(
-        //     if species_id == 1 { 1 } else { 0 },
-        //     if species_id == 2 { 1 } else { 0 },
-        //     if species_id == 3 { 1 } else { 0 },
-        // );
+        let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
 
         let agent = Agent {
-            // species,
-            // config: species_config,
-            // position,
-            data,
-            // angle,
-            // mask,
+            position,
+            angle,
+            species: 0.0,
         };
 
         return Ok(agent);

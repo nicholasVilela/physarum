@@ -9,6 +9,7 @@ pub struct Simulation {
     pub window_config: WindowConfig,
 
     pub compute_pipeline: wgpu::ComputePipeline,
+    pub render_map_pipeline: wgpu::RenderPipeline,
     pub render_pipeline: wgpu::RenderPipeline,
     pub compute_bind_group: wgpu::BindGroup,
     pub agent_buffer: wgpu::Buffer,
@@ -24,8 +25,9 @@ impl Simulation {
 
         let (compute_pipeline, compute_bind_group, agent_buffer, simulation_params_buffer) = Simulation::construct_compute_shader(ctx, &window_config,  &vec![config], agents)?;
         let render_pipeline = Simulation::construct_render_shader(ctx)?; 
+        let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
 
-        let simulation = Simulation { trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, agent_buffer, simulation_params_buffer ,frame: 0 };
+        let simulation = Simulation { trail, config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_map_pipeline, agent_buffer, simulation_params_buffer ,frame: 0 };
 
         return Ok(simulation);
     }
@@ -211,4 +213,50 @@ impl Simulation {
 
         return Ok(render_pipeline);
     }
+
+    fn construct_render_map_shader(ctx: &mut Context) -> GameResult<wgpu::RenderPipeline> {
+        let device = &ctx.gfx.wgpu().device;
+
+        let render_shader = util::construct_shader_module(device, "Render Map Shader", include_str!("shaders/render_map.wgsl"))?;
+        let pipeline_layout = util::construct_pipeline_layout(device, "Render Map Pipeline Layout", &vec![], &vec![])?;
+        let render_map_pipeline = util::construct_render_pipeline(
+            device, 
+            "Render Map Pipeline", 
+            Some(&pipeline_layout), 
+            wgpu::VertexState {
+                module: &render_shader,
+                entry_point: "main_vs",
+                buffers: &[
+                    wgpu::VertexBufferLayout {
+                        array_stride: 16,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array![0 => Float32x4],
+                    },
+                ],
+            },
+            Some(wgpu::FragmentState {
+                module: &render_shader,
+                entry_point: "main_fs",
+                targets: &[wgpu::ColorTargetState {
+                        format: ctx.gfx.surface_format(),
+                        blend: None,
+                        write_mask: wgpu::ColorWrites::ALL,
+                }],
+            }),
+            None,
+            None,
+            wgpu::MultisampleState::default(),
+            wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::PointList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+        )?;
+
+        return Ok(render_map_pipeline);
+    } 
 }

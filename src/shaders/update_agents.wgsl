@@ -2,9 +2,10 @@ struct SimulationParams {
     delta_time: f32;
     frame: u32;
 };
-
 struct Agent {
-    data: vec4<f32>;
+    position: vec2<f32>;
+    angle: f32;
+    species:f32;
 };
 
 struct Agents {
@@ -51,7 +52,6 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
 [[group(0), binding(0)]] var<uniform> simulation_params: SimulationParams;
 [[group(0), binding(1)]] var<storage, read_write> agent_src: Agents;
 [[group(0), binding(2)]] var<storage, read_write> map: Map;
-// [[group(0), binding(2)]] var<storage, read_write> agent_dst: Agents;
 
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
@@ -63,17 +63,11 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     }
 
     var agent = agent_src.agents[index];
-    var random = hash(u32(agent.data[1] * 500.0 + agent.data[0]) + hash(index + simulation_params.frame * 100000u));
+    var random = hash(u32(agent.position.y * 500.0 + agent.position.x) + hash(index + simulation_params.frame * 100000u));
 
-    var direction = vec2<f32>(cos(agent.data[2]), sin(agent.data[2]));
-    var next_position = vec2<f32>(agent.data[0], agent.data[1]) + direction * simulation_params.delta_time * 1.0;
-    var next_angle = agent.data[2];
-    // agent.data[0] = agent.data[0] + 0.001;
-
-    // agent.position = agent.position + vec2<f32>(0.001, 0.0);
-    // var direction = vec2<f32>(cos(0.0), sin(0.0));
-    // var next_position = agent.position + direction * simulation_params.delta_time * 1.0;
-    // var next_angle = agent.angle;
+    var direction = vec2<f32>(cos(agent.angle), sin(agent.angle));
+    var next_position = vec2<f32>(agent.position.x, agent.position.y) + direction * simulation_params.delta_time * 1.0;
+    var next_angle = agent.angle;
 
     if (next_position.x < -1.0 || next_position.x >= 1.0 || next_position.y < -1.0 || next_position.y >= 1.0) {
         var random = hash(random);
@@ -86,6 +80,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     let map_index = get_cell_index(next_position.x, next_position.y);
     map.trail[map_index] = 1.0;
-    var data = vec4<f32>(next_position.x, next_position.y, next_angle, 0.0);
-    agent_src.agents[index] = Agent(data);
+
+    agent_src.agents[index] = Agent(next_position, next_angle, 0.0);
 }
