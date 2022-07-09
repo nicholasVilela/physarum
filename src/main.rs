@@ -7,8 +7,9 @@ mod agent;
 mod config;
 mod engine;
 mod enums;
-mod params;
+mod param;
 mod simulation;
+mod storage;
 mod trail;
 mod util;
 
@@ -16,8 +17,9 @@ pub use agent::*;
 pub use config::*;
 pub use engine::*;
 pub use enums::*;
-pub use params::*;
+pub use param::*;
 pub use simulation::*;
+pub use storage::*;
 pub use trail::*;
 pub use util::*;
 

@@ -1,6 +1,6 @@
 use std::{mem};
 use ggez::{Context, GameResult};
-use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, SimulationParams};
+use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, Param, Storage};
 
 
 pub struct Simulation {
@@ -14,24 +14,27 @@ pub struct Simulation {
     pub render_map_pipeline: wgpu::RenderPipeline,
     pub render_pipeline: wgpu::RenderPipeline,
     pub compute_bind_group: wgpu::BindGroup,
-    pub agent_buffer: wgpu::Buffer,
-    pub map_buffer: wgpu::Buffer,
-    pub simulation_params_buffer: wgpu::Buffer,
+    pub agent_storage: Storage,
+    pub param_storage: Storage,
+    pub map_storage: Storage,
 
     pub frame: usize,
 }
 
 impl Simulation {
     pub fn new(ctx: &mut Context, config: SimulationConfig, window_config: WindowConfig) -> GameResult<Simulation> {
-        let agents = Simulation::construct_agents(&config, &window_config)?;
-        // let trail = Trail::new(ctx, &window_config)?;
+        let device = &ctx.gfx.wgpu().device;
 
-        let (compute_pipeline, compute_bind_group, agent_buffer, simulation_params_buffer, map_buffer) = Simulation::construct_compute_shader(ctx, &window_config,  &vec![config], agents)?;
-        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &window_config, &map_buffer)?;
+        let param_storage = Simulation::construct_param_buffer(device)?;
+        let agent_storage = Simulation::construct_agent_buffer(device, &config, &window_config)?;
+        let map_storage = Simulation::construct_map_buffer(device, &window_config)?;
+
+        let (compute_pipeline, compute_bind_group) = Simulation::construct_compute_shader(ctx, &agent_storage, &param_storage, &map_storage)?;
+        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &window_config, &map_storage)?;
         let render_pipeline = Simulation::construct_render_shader(ctx)?; 
         let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
 
-        let simulation = Simulation { config, window_config, compute_pipeline, compute_bind_group, compute_map_pipeline, compute_map_bind_group, render_pipeline, render_map_pipeline, agent_buffer, simulation_params_buffer, map_buffer, frame: 0 };
+        let simulation = Simulation { config, window_config, compute_pipeline, compute_bind_group, compute_map_pipeline, compute_map_bind_group, render_pipeline, render_map_pipeline, agent_storage, param_storage, map_storage, frame: 0 };
 
         return Ok(simulation);
     }
@@ -46,9 +49,9 @@ impl Simulation {
         let window_area = self.window_config.width * self.window_config.height;
 
         let delta_time = ctx.time.delta().as_secs_f32();
-        let simulation_params = [SimulationParams { delta_time, frame: self.frame as u32 }];
+        let param = [Param { delta_time, frame: self.frame as u32 }];
 
-        ctx.gfx.wgpu().queue.write_buffer(&self.simulation_params_buffer, 0, bytemuck::cast_slice(&simulation_params));
+        ctx.gfx.wgpu().queue.write_buffer(&self.param_storage.buffer, 0, bytemuck::cast_slice(&param));
         let command_encoder = ctx.gfx.commands().unwrap();
 
         // Update Agents
@@ -85,7 +88,7 @@ impl Simulation {
             }); 
 
             pass.set_pipeline(&self.render_map_pipeline);
-            pass.set_vertex_buffer(0, self.map_buffer.slice(..));
+            pass.set_vertex_buffer(0, self.map_storage.buffer.slice(..));
             pass.draw(0..1, 0..window_area as u32);
         }
 
@@ -98,7 +101,6 @@ impl Simulation {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
-                        // load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: true,
                     },
                 }],
@@ -106,7 +108,7 @@ impl Simulation {
             }); 
 
             pass.set_pipeline(&self.render_pipeline);
-            pass.set_vertex_buffer(0, self.agent_buffer.slice(..));
+            pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
             pass.draw(0..1, 0..self.config.agent_count as u32);
         }
         
@@ -149,20 +151,40 @@ impl Simulation {
         return Ok(trail_map);
     }
 
-    fn construct_compute_shader(ctx: &mut Context, window_config: &WindowConfig, simulation_config: &Vec<SimulationConfig>, agents: Vec<Agent>) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup, wgpu::Buffer, wgpu::Buffer, wgpu::Buffer)> {
+    fn construct_agent_buffer(device: &wgpu::Device, simulation_config: &SimulationConfig, window_config: &WindowConfig) -> GameResult<Storage> {
+        let size = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
+        let data = Simulation::construct_agents(simulation_config, window_config)?;
+        let buffer = util::construct_buffer_init(device, "Agent Buffer", &data, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
+
+        let storage = Storage { size, buffer };
+
+        return Ok(storage);
+    }
+
+    fn construct_param_buffer(device: &wgpu::Device) -> GameResult<Storage> {
+        let size = mem::size_of::<Param>();
+        let data = vec![Param::default()];
+        let buffer = util::construct_buffer_init(device, "Param Buffer", &data, wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST)?;
+
+        let storage = Storage { size, buffer };
+
+        return Ok(storage);
+    }
+
+    fn construct_map_buffer(device: &wgpu::Device, window_config: &WindowConfig) -> GameResult<Storage> {
+        let size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
+        let data = Simulation::construct_trail_map(window_config)?;
+        let buffer = util::construct_buffer_init(device, "Map Buffer", &data, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
+
+        let storage = Storage { size, buffer };
+
+        return Ok(storage);
+    }
+
+    fn construct_compute_shader(ctx: &mut Context, agent_storage: &Storage, param_storage: &Storage, map_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_agents.wgsl"))?;
-
-        let agent_size = mem::size_of::<Agent>() * simulation_config[0].agent_count as usize;
-        let agent_buffer = util::construct_buffer_init(device, "Agent Buffer", &agents, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
-
-        let map = Simulation::construct_trail_map(window_config)?;
-        let map_size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
-        let map_buffer = util::construct_buffer_init(device, "Map Buffer", &map, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
-
-        let simulation_params = vec![SimulationParams::default()];
-        let simulation_params_buffer = util::construct_buffer_init(device, "Simulation Params Buffer", &simulation_params, wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST)?;
 
         let compute_bind_group_entries = &[
             wgpu::BindGroupLayoutEntry {
@@ -171,7 +193,7 @@ impl Simulation {
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(mem::size_of::<SimulationParams>() as _),
+                    min_binding_size: wgpu::BufferSize::new(param_storage.size as _),
                 },
                 count: None,
             },
@@ -181,7 +203,7 @@ impl Simulation {
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
                     has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(agent_size as _),
+                    min_binding_size: wgpu::BufferSize::new(agent_storage.size as _),
                 },
                 count: None,
             },
@@ -191,7 +213,7 @@ impl Simulation {
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
                     has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(map_size as _),
+                    min_binding_size: wgpu::BufferSize::new(map_storage.size as _),
                 },
                 count: None,
             },
@@ -207,23 +229,23 @@ impl Simulation {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: simulation_params_buffer.as_entire_binding(),
+                    resource: param_storage.buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: agent_buffer.as_entire_binding(),
+                    resource: agent_storage.buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: map_buffer.as_entire_binding(),
+                    resource: map_storage.buffer.as_entire_binding(),
                 },
             ],
         });
 
-        return Ok((compute_pipeline, compute_bind_group, agent_buffer, simulation_params_buffer, map_buffer));
+        return Ok((compute_pipeline, compute_bind_group));
     }
 
-    fn construct_compute_map_shader(ctx: &mut Context, window_config: &WindowConfig, map_buffer: &wgpu::Buffer) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+    fn construct_compute_map_shader(ctx: &mut Context, window_config: &WindowConfig, map_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_map_shader = util::construct_shader_module(device, "Compute Map Shader", include_str!("shaders/update_map.wgsl"))?;
@@ -236,7 +258,7 @@ impl Simulation {
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
                     has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(map_size as _),
+                    min_binding_size: wgpu::BufferSize::new(map_storage.size as _),
                 },
                 count: None,
             },
@@ -253,7 +275,7 @@ impl Simulation {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: map_buffer.as_entire_binding(),
+                    resource: map_storage.buffer.as_entire_binding(),
                 },
             ],
         });
