@@ -2,6 +2,7 @@ struct SimulationParams {
     delta_time: f32;
     frame: u32;
 };
+
 struct Agent {
     position: vec2<f32>;
     angle: f32;
@@ -12,8 +13,13 @@ struct Agents {
     agents: array<Agent>;
 };
 
+struct Trail {
+    position: vec2<f32>;
+    value: f32;
+};
+
 struct Map {
-    trail: array<f32>;
+    trail: array<Trail>;
 };
 
 fn hash(state: u32) -> u32 {
@@ -35,18 +41,24 @@ fn scale_to_range_01(state: u32) -> f32 {
 
 fn get_cell_index(x: f32, y: f32) -> i32 {
     let size = 500.0;
-    let world_x = ( x + 1.0) / 2.0 *size;
-    let world_y = ( -y + 1.0) / 2.0 *size;
 
-    var index_x = floor( world_x );
-    var index_y = floor( world_y );
+    let world_x = (x + 1.0) / 2.0 * size;
+    let world_y = (-y + 1.0) / 2.0 * size;
 
-    if (index_x < 0.0 ) { index_x = index_x +size; }
-    if (index_y < 0.0 ) { index_y = index_y +size; }
-    if (index_y >size - 1.0 ) { index_y = index_y -size; }
-    if (index_x >size - 1.0 ) { index_x = index_x -size; }
+    var index_x = floor(world_x);
+    var index_y = floor(world_y);
+
+    if (index_x < 0.0) { index_x = index_x + size; }
+    if (index_y < 0.0) { index_y = index_y + size; }
+    if (index_x > size - 1.0) { index_x = index_x - size; }
+    if (index_y > size - 1.0) { index_y = index_y - size; }
+
+    // if (index_x < 0.0) { index_x = 0.0; }
+    // if (index_y < 0.0) { index_y = 0.0; }
+    // if (index_x > size - 1.0) { index_x = size - 1.0; }
+    // if (index_y > size - 1.0) { index_y = size - 1.0; }
     
-    return i32(index_y *size + index_x);
+    return i32((index_y * (size)) + index_x);
 }
 
 [[group(0), binding(0)]] var<uniform> simulation_params: SimulationParams;
@@ -78,8 +90,9 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         next_position.y = min(1.0, max(-1.0, next_position.y));
     }
 
-    let map_index = get_cell_index(next_position.x, next_position.y);
-    map.trail[map_index] = 1.0;
+    let map_index = get_cell_index(1.0, 0.0);
+    // let map_index = get_cell_index(next_position.x, next_position.y);
+    map.trail[map_index].value = 1.0;
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);
 }
