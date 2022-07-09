@@ -65,7 +65,6 @@ impl Simulation {
             let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             pass.set_pipeline(&self.compute_map_pipeline);
             pass.set_bind_group(0, &self.compute_map_bind_group, &[]);
-            // let work_group_count = (self.config.agent_count as f32 / 32.0).ceil() as u32;
             let work_group_count = (1.0 + ((self.window_config.width * self.window_config.height) as f32 / 32.0)) as u32;
             pass.dispatch(work_group_count, 1, 1);
         }
@@ -227,7 +226,7 @@ impl Simulation {
     fn construct_compute_map_shader(ctx: &mut Context, window_config: &WindowConfig, map_buffer: &wgpu::Buffer) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
-        let compute_map_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_map.wgsl"))?;
+        let compute_map_shader = util::construct_shader_module(device, "Compute Map Shader", include_str!("shaders/update_map.wgsl"))?;
         let map_size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
 
         let compute_map_bind_group_entries = &[

@@ -22,6 +22,7 @@ struct Map {
     trail: array<Trail>;
 };
 
+
 fn hash(state: u32) -> u32 {
     var res = state;
 
@@ -53,47 +54,6 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
 
     return index;
 }
-
-// fn get_cell_index(x: f32, y: f32) -> i32 {
-//     let size = 500.0;
-
-//     let world_x = ((x + 1.0) / 2.0) * size;
-//     let world_y = ((-y + 1.0) / 2.0) * size;
-
-//     var index_x = floor(world_x);
-//     var index_y = floor(world_y);
-
-    // if (index_x < 0.0) { index_x = index_x + size; }
-    // if (index_y < 0.0) { index_y = index_y + size; }
-    // if (index_x > size - 1.0) { index_x = index_x - size; }
-    // if (index_y > size - 1.0) { index_y = index_y - size; }
-
-//     let index = i32((size * index_y) + index_x);
-
-//     return index;
-// }
-
-// fn get_cell_index(x: f32, y: f32) -> i32 {
-//     let size = 500.0;
-
-//     let world_x = (x + 1.0) / 2.0 * size;
-//     let world_y = (-y + 1.0) / 2.0 * size;
-
-//     var index_x = floor(world_x);
-//     var index_y = floor(world_y);
-
-    // if (index_x < 0.0) { index_x = index_x + size; }
-    // if (index_y < 0.0) { index_y = index_y + size; }
-    // if (index_x > size - 1.0) { index_x = index_x - size; }
-    // if (index_y > size - 1.0) { index_y = index_y - size; }
-
-//     // if (index_x < 0.0) { index_x = 0.0; }
-//     // if (index_y < 0.0) { index_y = 0.0; }
-//     // if (index_x > size - 1.0) { index_x = size - 1.0; }
-//     // if (index_y > size - 1.0) { index_y = size - 1.0; }
-    
-//     return i32((index_y * (size)) + index_x);
-// }
 
 [[group(0), binding(0)]] var<uniform> simulation_params: SimulationParams;
 [[group(0), binding(1)]] var<storage, read_write> agent_src: Agents;
