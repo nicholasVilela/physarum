@@ -1,3 +1,11 @@
+struct Constants {
+    window_height: f32;
+    window_width: f32;
+    evaporation_rate: f32;
+    diffusion_rate: f32;
+    diffusion_strength: f32;
+};
+
 struct Trail {
     position: vec2<f32>;
     value: f32;
@@ -23,15 +31,16 @@ fn who_cell(x : i32, y : i32) -> i32 {
 }
 
 [[group(0), binding(0)]] var<storage, read_write> map: Map;
+[[group(0), binding(1)]] var<uniform> constants: Constants;
 
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let index = global_id.x;
 
-    let size = 500.0;
-    let evaporation_rate = 0.01;
-    let diffusion_rate = 0.1;
-    let diffusion_strength = 0.6;
+    let size = constants.window_width;
+    let evaporation_rate = constants.evaporation_rate;
+    let diffusion_rate = constants.diffusion_rate;
+    let diffusion_strength = constants.diffusion_strength;
 
     let cell_x = i32(i32(index) % i32(size));
     let cell_y = i32(i32(index) / i32(size));

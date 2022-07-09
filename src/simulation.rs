@@ -33,7 +33,7 @@ impl Simulation {
         let map_storage = Simulation::construct_map_storage(device, &window_config)?;
 
         let (compute_pipeline, compute_bind_group) = Simulation::construct_compute_shader(ctx, &constants_storage, &agent_storage, &param_storage, &map_storage)?;
-        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &map_storage)?;
+        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &map_storage, &constants_storage)?;
         let render_pipeline = Simulation::construct_render_shader(ctx)?; 
         let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
 
@@ -272,7 +272,7 @@ impl Simulation {
         return Ok((compute_pipeline, compute_bind_group));
     }
 
-    fn construct_compute_map_shader(ctx: &mut Context, map_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+    fn construct_compute_map_shader(ctx: &mut Context, map_storage: &Storage, constants_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_map_shader = util::construct_shader_module(device, "Compute Map Shader", include_str!("shaders/update_map.wgsl"))?;
@@ -285,6 +285,16 @@ impl Simulation {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
                     has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(map_storage.size as _),
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(constants_storage.size as _),
                 },
                 count: None,
             },
@@ -302,6 +312,10 @@ impl Simulation {
                 wgpu::BindGroupEntry {
                     binding: 0,
                     resource: map_storage.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: constants_storage.buffer.as_entire_binding(),
                 },
             ],
         });
