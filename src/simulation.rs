@@ -120,12 +120,13 @@ impl Simulation {
     fn construct_trail_map(window_config: &WindowConfig) -> GameResult<Vec<Trail>> {
         let mut trail_map = Vec::new();
 
-        for x in 0..window_config.width {
-            for y in 0..window_config.height {
+        for y in 0..window_config.height {
+            for x in 0..window_config.width {
                 let xb = (window_config.width / 2) as f32;
                 let yb = (window_config.height / 2) as f32;
+                
                 let x_pos = (x as f32 - xb) / xb;
-                let y_pos = (y as f32 -yb) / yb;
+                let y_pos = (y as f32 - yb) / yb;
 
                 let trail = Trail::new([x_pos, y_pos], 0.0)?;
 
@@ -146,6 +147,7 @@ impl Simulation {
 
         let map = Simulation::construct_trail_map(window_config)?;
         let map_size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
+        // let map_size = 12 * window_config.width as usize * window_config.height as usize;
         let map_buffer = util::construct_buffer_init(device, "Map Buffer", &map, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
 
         let simulation_params = vec![SimulationParams::default()];
@@ -276,7 +278,7 @@ impl Simulation {
                 entry_point: "main_vs",
                 buffers: &[
                     wgpu::VertexBufferLayout {
-                        array_stride: 12,
+                        array_stride: 16,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32],
                     },

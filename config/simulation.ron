@@ -2,6 +2,4 @@ SimulationConfig(
     agent_count: 1,
     evaporation_speed: 2,
     blur_strength: 1,
-    // pattern: Center,
-    // render_agents: false,
 )

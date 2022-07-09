@@ -10,11 +10,12 @@ use glam::{UVec3, Vec2};
 pub struct Trail {
     pub position: [f32; 2],
     pub value: f32,
+    pub t: f32,
 }
 
 impl Trail {
     pub fn new(position: [f32; 2], value: f32) -> GameResult<Trail> {
-        let trail = Trail { position, value };
+        let trail = Trail { position, value, t: 0.0 };
 
         return Ok(trail);
     }
