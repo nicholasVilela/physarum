@@ -5,6 +5,7 @@ mod tests;
 
 mod agent;
 mod config;
+mod constants;
 mod engine;
 mod enums;
 mod param;
@@ -15,6 +16,7 @@ mod util;
 
 pub use agent::*;
 pub use config::*;
+pub use constants::*;
 pub use engine::*;
 pub use enums::*;
 pub use param::*;
