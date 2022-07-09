@@ -9,6 +9,8 @@ pub struct Simulation {
     pub window_config: WindowConfig,
 
     pub compute_pipeline: wgpu::ComputePipeline,
+    pub compute_map_pipeline: wgpu::ComputePipeline,
+    pub compute_map_bind_group: wgpu::BindGroup,
     pub render_map_pipeline: wgpu::RenderPipeline,
     pub render_pipeline: wgpu::RenderPipeline,
     pub compute_bind_group: wgpu::BindGroup,
@@ -25,10 +27,11 @@ impl Simulation {
         // let trail = Trail::new(ctx, &window_config)?;
 
         let (compute_pipeline, compute_bind_group, agent_buffer, simulation_params_buffer, map_buffer) = Simulation::construct_compute_shader(ctx, &window_config,  &vec![config], agents)?;
+        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &window_config, &map_buffer)?;
         let render_pipeline = Simulation::construct_render_shader(ctx)?; 
         let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
 
-        let simulation = Simulation { config, window_config, compute_pipeline, compute_bind_group, render_pipeline, render_map_pipeline, agent_buffer, simulation_params_buffer, map_buffer, frame: 0 };
+        let simulation = Simulation { config, window_config, compute_pipeline, compute_bind_group, compute_map_pipeline, compute_map_bind_group, render_pipeline, render_map_pipeline, agent_buffer, simulation_params_buffer, map_buffer, frame: 0 };
 
         return Ok(simulation);
     }
@@ -48,12 +51,22 @@ impl Simulation {
         ctx.gfx.wgpu().queue.write_buffer(&self.simulation_params_buffer, 0, bytemuck::cast_slice(&simulation_params));
         let command_encoder = ctx.gfx.commands().unwrap();
 
-        // // Update Agents
+        // Update Agents
         {
             let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             pass.set_pipeline(&self.compute_pipeline);
             pass.set_bind_group(0, &self.compute_bind_group, &[]);
             let work_group_count = (self.config.agent_count as f32 / 32.0).ceil() as u32;
+            pass.dispatch(work_group_count, 1, 1);
+        }
+
+        // Update Map
+        {
+            let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            pass.set_pipeline(&self.compute_map_pipeline);
+            pass.set_bind_group(0, &self.compute_map_bind_group, &[]);
+            // let work_group_count = (self.config.agent_count as f32 / 32.0).ceil() as u32;
+            let work_group_count = (1.0 + ((self.window_config.width * self.window_config.height) as f32 / 32.0)) as u32;
             pass.dispatch(work_group_count, 1, 1);
         }
 
@@ -147,7 +160,6 @@ impl Simulation {
 
         let map = Simulation::construct_trail_map(window_config)?;
         let map_size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
-        // let map_size = 12 * window_config.width as usize * window_config.height as usize;
         let map_buffer = util::construct_buffer_init(device, "Map Buffer", &map, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
 
         let simulation_params = vec![SimulationParams::default()];
@@ -210,6 +222,44 @@ impl Simulation {
         });
 
         return Ok((compute_pipeline, compute_bind_group, agent_buffer, simulation_params_buffer, map_buffer));
+    }
+
+    fn construct_compute_map_shader(ctx: &mut Context, window_config: &WindowConfig, map_buffer: &wgpu::Buffer) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+        let device = &ctx.gfx.wgpu().device;
+
+        let compute_map_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_map.wgsl"))?;
+        let map_size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
+
+        let compute_map_bind_group_entries = &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(map_size as _),
+                },
+                count: None,
+            },
+        ];
+
+        let compute_map_bind_group_layout = util::construct_bind_group_layout(device, "Compute Map Bind Group Layout", compute_map_bind_group_entries)?;
+
+        let compute_map_pipeline_layout = util::construct_pipeline_layout(device, "Compute Map Pipeline Layout", &vec![&compute_map_bind_group_layout], &vec![])?;
+        let compute_map_pipeline = util::construct_compute_pipeline(device, "Compute Map Pipeline", Some(&compute_map_pipeline_layout), &compute_map_shader, "main")?;
+
+        let compute_map_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Compute Map Bind Group"),
+            layout: &compute_map_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: map_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        return Ok((compute_map_pipeline, compute_map_bind_group));
     }
 
     fn construct_render_shader(ctx: &mut Context) -> GameResult<wgpu::RenderPipeline> {

@@ -1,5 +1,5 @@
 SimulationConfig(
-    agent_count: 1,
+    agent_count: 5,
     evaporation_speed: 2,
     blur_strength: 1,
 )

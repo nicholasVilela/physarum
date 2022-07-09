@@ -46,14 +46,6 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
     var pos_x = (x * half) + half;
     var pos_y = (y * half) + half;
 
-    // if (pos_x < 0.0) { pos_x = pos_x + size; }
-    // if (pos_y < 0.0) { pos_y = pos_y + size; }
-    // if (pos_x > size - 1.0) { pos_x = pos_x - size; }
-    // if (pos_y > size - 1.0) { pos_y = pos_y - size; }
-
-    // let pos_x = ((x + 1.0) / 2.0) * size;
-    // let pos_y = ((-y + 1.0) / 2.0) * size;
-
     let rounded_x = floor(pos_x);
     let rounded_y = floor(pos_y);
 
@@ -132,11 +124,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         next_position.y = min(1.0, max(-1.0, next_position.y));
     }
 
-    // let map_index = get_cell_index(0.0, 0.0);
     let map_index = get_cell_index(next_position.x, next_position.y);
-    map.trail[map_index].value = 1.0;
-
-    // map.trail[125250].value = 1.0;
+    var trail = map.trail[map_index];
+    trail.value = 1.0;
+    map.trail[map_index] = trail;
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);
 }
