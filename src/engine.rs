@@ -62,13 +62,18 @@ impl EventHandler for Engine {
             self.paused = false;
         }
 
+        
+
         return Ok(());
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        if self.running { 
-            self.simulation.render(ctx)?;
-            
+        if self.running {
+
+            if !self.paused {
+                self.simulation.render(ctx)?;
+            }
+
             let mut canvas = graphics::Canvas::from_frame(ctx, None); 
             if self.window_config.show_fps { self.render_fps(ctx, &mut canvas)?; }
 

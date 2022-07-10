@@ -2,6 +2,7 @@ use crate::Constants;
 use std::{mem};
 use ggez::{Context, GameResult};
 use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, Param, Storage};
+use rand::{Rng};
 
 
 pub struct Simulation {
@@ -29,7 +30,7 @@ impl Simulation {
 
         let constants_storage = Simulation::construct_constants_storage(device, &window_config, &config)?;
         let param_storage = Simulation::construct_param_storage(device)?;
-        let agent_storage = Simulation::construct_agent_storage(device, &config, &window_config)?;
+        let agent_storage = Simulation::construct_agent_storage(device, &config)?;
         let map_storage = Simulation::construct_map_storage(device, &window_config)?;
 
         let (compute_pipeline, compute_bind_group) = Simulation::construct_compute_shader(ctx, &constants_storage, &agent_storage, &param_storage, &map_storage)?;
@@ -62,7 +63,7 @@ impl Simulation {
             let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             pass.set_pipeline(&self.compute_pipeline);
             pass.set_bind_group(0, &self.compute_bind_group, &[]);
-            let work_group_count = (self.config.agent_count as f32 / 32.0).ceil() as u32;
+            let work_group_count = (1.0 + self.config.agent_count as f32 / 32.0).ceil() as u32;
             pass.dispatch(work_group_count, 1, 1);
         }
 
@@ -95,39 +96,37 @@ impl Simulation {
             pass.draw(0..1, 0..window_area as u32);
         }
 
-        // // Render Agents
-        // {
-        //     let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        //         label: None,
-        //         color_attachments: &[wgpu::RenderPassColorAttachment {
-        //             view: frame.wgpu().1,
-        //             resolve_target: None,
-        //             ops: wgpu::Operations {
-        //                 load: wgpu::LoadOp::Load,
-        //                 store: true,
-        //             },
-        //         }],
-        //         depth_stencil_attachment: None,
-        //     }); 
+        // Render Agents
+        {
+            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[wgpu::RenderPassColorAttachment {
+                    view: frame.wgpu().1,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                }],
+                depth_stencil_attachment: None,
+            }); 
 
-        //     pass.set_pipeline(&self.render_pipeline);
-        //     pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
-        //     pass.draw(0..1, 0..self.config.agent_count as u32);
-        // }
+            pass.set_pipeline(&self.render_pipeline);
+            pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
+            pass.draw(0..1, 0..self.config.agent_count as u32);
+        }
         
         self.frame += 1;
 
         return Ok(());
     }
 
-    fn construct_agents(simulation_config: &SimulationConfig, window_config: &WindowConfig) -> GameResult<Vec<Agent>> {
+    fn construct_agents(simulation_config: &SimulationConfig) -> GameResult<Vec<Agent>> {
         let mut agents = Vec::new();
         let mut rng = rand::thread_rng();
 
-        let species_config = config::load::<SpeciesConfig>(&Species::A.to_string())?;
-
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(Species::A, species_config, window_config, &simulation_config, &mut rng)?;
+            let agent = Agent::new(&mut rng)?;
             agents.push(agent);
         }
 
@@ -164,9 +163,9 @@ impl Simulation {
         return Ok(storage);
     }
 
-    fn construct_agent_storage(device: &wgpu::Device, simulation_config: &SimulationConfig, window_config: &WindowConfig) -> GameResult<Storage> {
+    fn construct_agent_storage(device: &wgpu::Device, simulation_config: &SimulationConfig) -> GameResult<Storage> {
         let size = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
-        let data = Simulation::construct_agents(simulation_config, window_config)?;
+        let data = Simulation::construct_agents(simulation_config)?;
         let buffer = util::construct_buffer_init(device, "Agent Buffer", &data, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
 
         let storage = Storage { size, buffer };

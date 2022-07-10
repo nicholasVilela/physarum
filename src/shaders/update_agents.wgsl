@@ -14,7 +14,7 @@ struct Param {
 struct Agent {
     position: vec2<f32>;
     angle: f32;
-    species:f32;
+    seed: f32;
 };
 
 struct Agents {
@@ -132,7 +132,8 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let PI = 3.14159265358979323846264338327950288;
 
     var agent = agent_src.agents[index];
-    var random = hash(u32(agent.position.y * constants.window_width + agent.position.x) + hash((index + global_id.y) + param.frame * 100000u));
+    let seed = u32(agent.position.y * constants.window_width + agent.position.x);
+    var random = hash(seed + hash(index + param.frame * u32(agent.seed)));
 
     // let sensor_size = 1.0;
     // let sensor_angle = 50.0;
@@ -145,9 +146,9 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     let sensor_size = 1.0;
     let sensor_angle = 50.0;
-    let sensor_distance = 0.01;
-    let turn_speed = 10.0;
-    let move_speed = 0.3;
+    let sensor_distance = 0.005;
+    let turn_speed = 5.0;
+    let move_speed = 0.5;
     let forward_random_strength = -0.5;
     let right_random_strength = 0.0;
     let left_random_strength = 0.0;
@@ -158,10 +159,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let weight_right = sense(agent, sensor_size, sensor_distance, -sensor_angle_rad);
 
     let mod_turn_speed = turn_speed * TAU;
-    let random_steer_strength = scale_to_range_01(hash(random));
+    let random_steer_strength = scale_to_range_01(random);
 
     if (weight_forward > weight_left && weight_forward > weight_right) {
-        agent.angle = agent.angle + 0.0;
+        agent.angle = agent.angle;
     }
     else if (weight_forward < weight_left && weight_forward < weight_right) {
         agent.angle = agent.angle + (random_steer_strength + forward_random_strength) * 2.0 * mod_turn_speed * param.delta_time;
@@ -177,11 +178,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var next_position = vec2<f32>(agent.position.x, agent.position.y) + direction * param.delta_time * move_speed;
     var next_angle = agent.angle;
 
-    if (next_position.x < -1.0 || next_position.x >= 1.0 || next_position.y < -1.0 || next_position.y >= 1.0) {
+    if (next_position.x <= -1.0 || next_position.x >= 1.0 || next_position.y <= -1.0 || next_position.y >= 1.0) {
         var random = hash(random);
         var random_angle = scale_to_range_01(random) * TAU;
 
-        // next_angle = min(6.28, max(0.0, random_angle));
         next_angle = random_angle;
         next_position.x = min(1.0, max(-1.0, next_position.x)); 
         next_position.y = min(1.0, max(-1.0, next_position.y));

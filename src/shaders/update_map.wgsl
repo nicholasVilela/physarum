@@ -109,6 +109,34 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
     return index;
 }
 
+// [[stage(compute), workgroup_size(32)]]
+// fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+//     let index = global_id.x;
+
+//     let size = constants.window_width;
+//     let evaporation_rate = constants.evaporation_rate;
+//     let diffusion_rate = constants.diffusion_rate;
+//     let diffusion_strength = constants.diffusion_strength;
+
+//     var trail = map.trail[index];
+
+//     var sum = 0.0;
+
+//     {
+//         var x = -1;
+//         loop {
+
+//             continuing {
+
+//             }
+//         }
+//     }
+
+//     trail.value = max(0.0, trail.value - evaporation_rate * param.delta_time);
+
+//     map.trail[index] = trail;
+// }
+
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let index = global_id.x;

@@ -11,20 +11,21 @@ use bytemuck::{Pod, Zeroable};
 pub struct Agent {
     pub position: [f32; 2],
     pub angle: f32,
-    pub species: f32,
+    pub seed: f32,
     // pub data: [f32; 4],
 }
 
 impl Agent {
-    pub fn new<R: Rng + ?Sized>(species: Species, species_config: SpeciesConfig, window_config: &WindowConfig, simulation_config: &SimulationConfig,  rng: &mut R) -> GameResult<Agent> {
+    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> GameResult<Agent> {
         let angle = rng.gen::<f32>() * TAU;
         // let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
         let position = [0.0, 0.0];
+        let seed = rng.gen_range(0.0..1000000.0);
 
         let agent = Agent {
             position,
             angle,
-            species: 0.0,
+            seed,
         };
 
         return Ok(agent);

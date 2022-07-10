@@ -1,6 +1,6 @@
 WindowConfig(
-    width: 900,
-    height: 900,
+    width: 500,
+    height: 500,
     background: Color(
         r: 0.0,
         g: 0.0,
