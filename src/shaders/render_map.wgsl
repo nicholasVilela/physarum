@@ -19,5 +19,5 @@ fn main_vs(
 
 [[stage(fragment)]]
 fn main_fs(trail_output: TrailOutput) -> [[location(0)]] vec4<f32> {
-    return vec4<f32>(1.0, 1.0, 1.0, trail_output.value);
+    return vec4<f32>(1.0, 0.0, 1.0, trail_output.value);
 }

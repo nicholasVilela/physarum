@@ -48,8 +48,13 @@ fn scale_to_range_01(state: u32) -> f32 {
     return f32(state) / 4294967295.0;
 }
 
+[[group(0), binding(0)]] var<uniform> constants: Constants;
+[[group(0), binding(1)]] var<uniform> param: Param;
+[[group(0), binding(2)]] var<storage, read_write> agent_src: Agents;
+[[group(0), binding(3)]] var<storage, read_write> map: Map;
+
 fn get_cell_index(x: f32, y: f32) -> i32 {
-    let size = 500.0;
+    let size = constants.window_width;
     let half = size / 2.0;
 
     var pos_x = (x * half) + half;
@@ -63,10 +68,53 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
     return index;
 }
 
-[[group(0), binding(0)]] var<uniform> constants: Constants;
-[[group(0), binding(1)]] var<uniform> param: Param;
-[[group(0), binding(2)]] var<storage, read_write> agent_src: Agents;
-[[group(0), binding(3)]] var<storage, read_write> map: Map;
+fn sense(agent: Agent, sensor_size: f32, sensor_distance: f32, sensor_angle_offset: f32) -> f32 {
+    let width = constants.window_width;
+    let height = constants.window_height;
+
+    let sensor_angle = agent.angle + sensor_angle_offset;
+    let sensor_direction = vec2<f32>(cos(sensor_angle), sin(sensor_angle));
+    let sensor_position = agent.position + sensor_direction * sensor_distance;
+
+    let half = width / 2.0;
+    
+    var sum = 0.0;
+
+    {
+        var x: f32 = -sensor_size;
+
+        loop {
+            var y: f32 = -sensor_size;
+
+            if (x == sensor_size + 1.0) {
+                break;
+            }
+
+            loop {
+                if (y == sensor_size + 1.0) {
+                    break;
+                }
+
+                let pos_x = f32(min(1.0, max(-1.0, sensor_position.x + x)));
+                let pos_y = f32(min(1.0, max(-1.0, sensor_position.y + y)));
+
+                let sample = map.trail[get_cell_index(pos_x, pos_y)];
+
+                sum = sum + sample.value;
+
+                continuing {
+                    y = y + 1.0;
+                }
+            }
+
+            continuing {
+                x = x + 1.0;
+            }
+        }
+    }
+
+    return sum;
+}
 
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
@@ -77,26 +125,73 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         return;
     }
 
+    let width = constants.window_width;
+    let height = constants.window_height;
+
+    let TAU = 6.28318530717958647692528676655900577;
+    let PI = 3.14159265358979323846264338327950288;
+
     var agent = agent_src.agents[index];
-    var random = hash(u32(agent.position.y * constants.window_width + agent.position.x) + hash(index + param.frame * 100000u));
+    var random = hash(u32(agent.position.y * constants.window_width + agent.position.x) + hash((index + global_id.y) + param.frame * 100000u));
+
+    // let sensor_size = 1.0;
+    // let sensor_angle = 50.0;
+    // let sensor_distance = 0.01;
+    // let turn_speed = 10.0;
+    // let move_speed = 0.3;
+    // let forward_random_strength = -0.5;
+    // let right_random_strength = 0.0;
+    // let left_random_strength = 0.0;
+
+    let sensor_size = 1.0;
+    let sensor_angle = 50.0;
+    let sensor_distance = 0.01;
+    let turn_speed = 10.0;
+    let move_speed = 0.3;
+    let forward_random_strength = -0.5;
+    let right_random_strength = 0.0;
+    let left_random_strength = 0.0;
+
+    let sensor_angle_rad = sensor_angle * (PI / 180.0);
+    let weight_forward = sense(agent, sensor_size, sensor_distance, 0.0);
+    let weight_left = sense(agent, sensor_size, sensor_distance, sensor_angle_rad);
+    let weight_right = sense(agent, sensor_size, sensor_distance, -sensor_angle_rad);
+
+    let mod_turn_speed = turn_speed * TAU;
+    let random_steer_strength = scale_to_range_01(hash(random));
+
+    if (weight_forward > weight_left && weight_forward > weight_right) {
+        agent.angle = agent.angle + 0.0;
+    }
+    else if (weight_forward < weight_left && weight_forward < weight_right) {
+        agent.angle = agent.angle + (random_steer_strength + forward_random_strength) * 2.0 * mod_turn_speed * param.delta_time;
+    }
+    else if (weight_right > weight_left) {
+        agent.angle = agent.angle - (random_steer_strength + right_random_strength) * mod_turn_speed * param.delta_time;
+    }
+    else if (weight_left > weight_right) {
+        agent.angle = agent.angle + (random_steer_strength + left_random_strength) * mod_turn_speed * param.delta_time;
+    }
 
     var direction = vec2<f32>(cos(agent.angle), sin(agent.angle));
-    var next_position = vec2<f32>(agent.position.x, agent.position.y) + direction * param.delta_time * 1.0;
+    var next_position = vec2<f32>(agent.position.x, agent.position.y) + direction * param.delta_time * move_speed;
     var next_angle = agent.angle;
 
     if (next_position.x < -1.0 || next_position.x >= 1.0 || next_position.y < -1.0 || next_position.y >= 1.0) {
         var random = hash(random);
-        var random_angle = scale_to_range_01(random) * 2.0 * 3.14159265359;
+        var random_angle = scale_to_range_01(random) * TAU;
 
-        next_angle = min(6.28, max(0.0, random_angle));
+        // next_angle = min(6.28, max(0.0, random_angle));
+        next_angle = random_angle;
         next_position.x = min(1.0, max(-1.0, next_position.x)); 
         next_position.y = min(1.0, max(-1.0, next_position.y));
     }
-
-    let map_index = get_cell_index(next_position.x, next_position.y);
-    var trail = map.trail[map_index];
-    trail.value = 1.0;
-    map.trail[map_index] = trail;
+    else {
+        let map_index = get_cell_index(next_position.x, next_position.y);
+        var trail = map.trail[map_index];
+        trail.value = 1.0;
+        map.trail[map_index] = trail;
+    }
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);
 }

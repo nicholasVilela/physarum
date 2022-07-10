@@ -33,7 +33,7 @@ impl Simulation {
         let map_storage = Simulation::construct_map_storage(device, &window_config)?;
 
         let (compute_pipeline, compute_bind_group) = Simulation::construct_compute_shader(ctx, &constants_storage, &agent_storage, &param_storage, &map_storage)?;
-        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &map_storage, &constants_storage)?;
+        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &map_storage, &constants_storage, &param_storage)?;
         let render_pipeline = Simulation::construct_render_shader(ctx)?; 
         let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
 
@@ -96,24 +96,24 @@ impl Simulation {
         }
 
         // // Render Agents
-        {
-            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
-                    view: frame.wgpu().1,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            }); 
+        // {
+        //     let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        //         label: None,
+        //         color_attachments: &[wgpu::RenderPassColorAttachment {
+        //             view: frame.wgpu().1,
+        //             resolve_target: None,
+        //             ops: wgpu::Operations {
+        //                 load: wgpu::LoadOp::Load,
+        //                 store: true,
+        //             },
+        //         }],
+        //         depth_stencil_attachment: None,
+        //     }); 
 
-            pass.set_pipeline(&self.render_pipeline);
-            pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
-            pass.draw(0..1, 0..self.config.agent_count as u32);
-        }
+        //     pass.set_pipeline(&self.render_pipeline);
+        //     pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
+        //     pass.draw(0..1, 0..self.config.agent_count as u32);
+        // }
         
         self.frame += 1;
 
@@ -272,7 +272,7 @@ impl Simulation {
         return Ok((compute_pipeline, compute_bind_group));
     }
 
-    fn construct_compute_map_shader(ctx: &mut Context, map_storage: &Storage, constants_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+    fn construct_compute_map_shader(ctx: &mut Context, map_storage: &Storage, constants_storage: &Storage, param_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_map_shader = util::construct_shader_module(device, "Compute Map Shader", include_str!("shaders/update_map.wgsl"))?;
@@ -298,6 +298,16 @@ impl Simulation {
                 },
                 count: None,
             },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(param_storage.size as _),
+                },
+                count: None,
+            },
         ];
 
         let compute_map_bind_group_layout = util::construct_bind_group_layout(device, "Compute Map Bind Group Layout", compute_map_bind_group_entries)?;
@@ -316,6 +326,10 @@ impl Simulation {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: constants_storage.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: param_storage.buffer.as_entire_binding(),
                 },
             ],
         });
