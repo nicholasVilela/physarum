@@ -146,26 +146,26 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let diffusion_rate = constants.diffusion_rate;
     let diffusion_strength = constants.diffusion_strength;
 
-    let distance = 1;
+    let distance = 0.001;
 
-    // let cell_x = map.trail[index].position.x;
-    // let cell_y = map.trail[index].position.y;
+    let cell_x = map.trail[index].position.x;
+    let cell_y = map.trail[index].position.y;
 
-    let cell_x = i32(i32(index) % i32(size));
-    let cell_y = i32(i32(index) / i32(size));
+    // let cell_x = i32(i32(index) % i32(size));
+    // let cell_y = i32(i32(index) / i32(size));
 
-    // let cell_x = i32((map.trail[index].position.x * (size / 2.0)) + size / 2.0);
-    // let cell_y = i32((map.trail[index].position.y * (size / 2.0)) + size / 2.0);
+    // let cell_x = (map.trail[index].position.x * (size / 2.0)) + size / 2.0;
+    // let cell_y = (map.trail[index].position.y * (size / 2.0)) + size / 2.0;
 
-    let center_cell_index = who_cell(cell_x, cell_y);
+    let center_cell_index = get_cell_index(cell_x, cell_y);
     let center = map.trail[center_cell_index];
 
-    map.trail[index].value = center.value * evaporation_rate;
+    map.trail[index].value = map.trail[index].value * evaporation_rate;
 
-    let _left = who_cell(cell_x - distance, cell_y);
-    let _right = who_cell(cell_x + distance, cell_y);
-    let _top = who_cell(cell_x, cell_y - distance);
-    let _bottom = who_cell(cell_x, cell_y + distance);
+    let _left = get_cell_index(cell_x - distance, cell_y);
+    let _right = get_cell_index(cell_x + distance, cell_y);
+    let _top = get_cell_index(cell_x, cell_y - distance);
+    let _bottom = get_cell_index(cell_x, cell_y + distance);
 
     let _take_left = map.trail[_left].value * diffusion_rate;
     map.trail[_left].value = map.trail[_left].value - _take_left;
@@ -184,7 +184,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     if (map.trail[index].value > 1.0) {
         map.trail[index].value = 1.0;
     }
-    if (map.trail[index].value < 0.00001) {
+    else if (map.trail[index].value < 0.00001) {
         map.trail[index].value = 0.0;
     }
 }

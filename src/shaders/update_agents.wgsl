@@ -132,8 +132,8 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let PI = 3.14159265358979323846264338327950288;
 
     var agent = agent_src.agents[index];
-    let seed = u32(agent.position.y * constants.window_width + agent.position.x);
-    var random = hash(seed + hash(index + param.frame * u32(agent.seed)));
+    let seed = u32(agent.position.y * constants.window_width + agent.position.x) * u32(agent.seed);
+    var random = hash(seed + hash(u32(agent.seed)) + hash(index + param.frame));
 
     // let sensor_size = 1.0;
     // let sensor_angle = 50.0;
@@ -146,11 +146,11 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     let sensor_size = 1.0;
     let sensor_angle = 50.0;
-    let sensor_distance = 0.005;
-    let turn_speed = 5.0;
+    let sensor_distance = 0.01;
+    let turn_speed = 10.0;
     let move_speed = 0.5;
     let forward_random_strength = -0.5;
-    let right_random_strength = 0.0;
+    let right_random_strength = 20.0;
     let left_random_strength = 0.0;
 
     let sensor_angle_rad = sensor_angle * (PI / 180.0);
@@ -179,7 +179,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var next_angle = agent.angle;
 
     if (next_position.x <= -1.0 || next_position.x >= 1.0 || next_position.y <= -1.0 || next_position.y >= 1.0) {
-        var random = hash(random);
+        var random = hash(random + u32(agent.seed));
         var random_angle = scale_to_range_01(random) * TAU;
 
         next_angle = random_angle;
