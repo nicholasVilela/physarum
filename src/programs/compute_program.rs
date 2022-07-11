@@ -14,11 +14,12 @@ impl ComputeProgram {
         return Ok(compute_program);
     }
 
-    pub fn process(&mut self, command_encoder: &mut wgpu::CommandEncoder) -> GameResult {
+    pub fn process(&mut self, command_encoder: &mut wgpu::CommandEncoder, frame: usize) -> GameResult {
         let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
 
         pass.set_pipeline(&self.pipeline);
-        self.bind_groups.iter().enumerate().for_each(|(i, group)| pass.set_bind_group(i as u32, group, &[]));
+        pass.set_bind_group(0, &self.bind_groups[frame % 2], &[]);
+        // self.bind_groups.iter().enumerate().for_each(|(i, group)| pass.set_bind_group(i as u32, group, &[]));
         pass.dispatch(self.dispatch_group.0, self.dispatch_group.1, self.dispatch_group.2);
 
         return Ok(());

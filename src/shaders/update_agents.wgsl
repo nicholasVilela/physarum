@@ -99,7 +99,7 @@ fn sense(agent: Agent, sensor_size: f32, sensor_distance: f32, sensor_angle_offs
                 let pos_x = f32(min(1.0, max(-1.0, sensor_position.x + x)));
                 let pos_y = f32(min(1.0, max(-1.0, sensor_position.y + y)));
 
-                let sample = map.trail[get_cell_index(pos_x, pos_y)];
+                let sample = map_src.trail[get_cell_index(pos_x, pos_y)];
 
                 sum = sum + sample.value;
 
@@ -189,9 +189,9 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     }
     else {
         let map_index = get_cell_index(next_position.x, next_position.y);
-        var trail = map.trail[map_index];
+        var trail = map_src.trail[map_index];
         trail.value = 1.0;
-        map.trail[map_index] = trail;
+        map_dst.trail[map_index] = trail;
     }
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);
