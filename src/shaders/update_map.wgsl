@@ -26,17 +26,20 @@ struct Map {
 [[group(0), binding(2)]] var<uniform> param: Param;
 
 fn who_cell(x : i32, y : i32) -> i32 {
-    var _x = x;
-    var _y = y;
+    let size = i32(constants.window_width);
 
-    let size = constants.window_width;
+    var _x = min(size, max(0, x));
+    var _y = min(size, max(0, y));
 
-    if ( _x >= i32(size) ) { _x = _x - i32(size); }
-    if ( _x < 0 ) { _x = _x + i32(size); }
-    if ( _y < 0 ) { _y = _y + i32(size); }
-    if ( _y >= i32(size) ) { _y = _y - i32(size); }
+    // var _x = x;
+    // var _y = y;
 
-    return  _y * i32(size) + _x ;
+    // if ( _x >= size ) { _x = size; }
+    // if ( _x < 0 ) { _x = 0; }
+    // if ( _y < 0 ) { _y = 0;}
+    // if ( _y >= size ) { _y = size; }
+
+    return  (_y * size) + _x ;
 }
 
 // [[stage(compute), workgroup_size(32)]]
@@ -95,11 +98,14 @@ fn who_cell(x : i32, y : i32) -> i32 {
 // }
 
 fn get_cell_index(x: f32, y: f32) -> i32 {
-    let size = 500.0;
+    let x = min(1.0, max(-1.0, x));
+    let y = min(1.0, max(-1.0, y));
+
+    let size = constants.window_width;
     let half = size / 2.0;
 
-    var pos_x = (x * half) + half;
-    var pos_y = (y * half) + half;
+    let pos_x = (x * half) + half;
+    let pos_y = (y * half) + half;
 
     let rounded_x = floor(pos_x);
     let rounded_y = floor(pos_y);
@@ -139,14 +145,18 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
 
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+    let size = constants.window_width;
     let index = global_id.x;
 
-    let size = constants.window_width;
+    // if (index >= u32(size * size)) {
+    //     return;
+    // }
+
     let evaporation_rate = constants.evaporation_rate;
     let diffusion_rate = constants.diffusion_rate;
     let diffusion_strength = constants.diffusion_strength;
 
-    let distance = 0.001;
+    let distance = 0.1;
 
     let cell_x = map.trail[index].position.x;
     let cell_y = map.trail[index].position.y;
@@ -154,18 +164,46 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     // let cell_x = i32(i32(index) % i32(size));
     // let cell_y = i32(i32(index) / i32(size));
 
-    // let cell_x = (map.trail[index].position.x * (size / 2.0)) + size / 2.0;
-    // let cell_y = (map.trail[index].position.y * (size / 2.0)) + size / 2.0;
+    let center = map.trail[get_cell_index(cell_x, cell_y)];
+    map.trail[index].value = center.value * evaporation_rate;
 
-    let center_cell_index = get_cell_index(cell_x, cell_y);
-    let center = map.trail[center_cell_index];
+    var left_cell_distance = cell_x - distance;
+    var right_cell_distance = cell_x + distance;
+    var top_cell_distance = cell_y - distance;
+    var bottom_cell_distance = cell_y + distance;
 
-    map.trail[index].value = map.trail[index].value * evaporation_rate;
+    if (left_cell_distance < 0.0) {
+        left_cell_distance = 0.0;
+    }
+    else if (left_cell_distance > 1.0) {    
+        left_cell_distance = 1.0;
+    }
+    
+    if (right_cell_distance < 0.0) {
+        right_cell_distance = 0.0;
+    }
+    else if (right_cell_distance > 1.0) {
+        right_cell_distance = 1.0;
+    }
 
-    let _left = get_cell_index(cell_x - distance, cell_y);
-    let _right = get_cell_index(cell_x + distance, cell_y);
-    let _top = get_cell_index(cell_x, cell_y - distance);
-    let _bottom = get_cell_index(cell_x, cell_y + distance);
+    if (top_cell_distance < 0.0) {
+        top_cell_distance = 0.0;
+    }
+    else if (top_cell_distance > 1.0) {
+        top_cell_distance = 1.0;
+    }
+
+    if (bottom_cell_distance < 0.0) {
+        bottom_cell_distance = 0.0;
+    }
+    else if (bottom_cell_distance > 1.0) {
+        bottom_cell_distance = 1.0;
+    }
+
+    let _left = get_cell_index(left_cell_distance, cell_y);
+    let _right = get_cell_index(right_cell_distance, cell_y);
+    let _top = get_cell_index(cell_x, top_cell_distance);
+    let _bottom = get_cell_index(cell_x, bottom_cell_distance);
 
     let _take_left = map.trail[_left].value * diffusion_rate;
     map.trail[_left].value = map.trail[_left].value - _take_left;
@@ -181,10 +219,12 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     map.trail[index].value = map.trail[index].value + (_take_left + _take_right + _take_top + _take_bottom) * diffusion_strength;
 
-    if (map.trail[index].value > 1.0) {
-        map.trail[index].value = 1.0;
-    }
-    else if (map.trail[index].value < 0.00001) {
-        map.trail[index].value = 0.0;
-    }
+    map.trail[index].value = min(1.0, max(0.0, map.trail[index].value));
+
+    // if (map.trail[index].value > 1.0) {
+    //     map.trail[index].value = 1.0;
+    // }
+    // else if (map.trail[index].value < 0.0) {
+    //     map.trail[index].value = 0.0;
+    // }
 }

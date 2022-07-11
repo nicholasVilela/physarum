@@ -146,11 +146,11 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     let sensor_size = 1.0;
     let sensor_angle = 50.0;
-    let sensor_distance = 0.01;
-    let turn_speed = 10.0;
-    let move_speed = 0.5;
+    let sensor_distance = 0.001;
+    let turn_speed = 1.0;
+    let move_speed = 1.0;
     let forward_random_strength = -0.5;
-    let right_random_strength = 20.0;
+    let right_random_strength = 0.0;
     let left_random_strength = 0.0;
 
     let sensor_angle_rad = sensor_angle * (PI / 180.0);
@@ -182,9 +182,9 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         var random = hash(random + u32(agent.seed));
         var random_angle = scale_to_range_01(random) * TAU;
 
-        next_angle = random_angle;
         next_position.x = min(1.0, max(-1.0, next_position.x)); 
         next_position.y = min(1.0, max(-1.0, next_position.y));
+        next_angle = random_angle;
     }
     else {
         let map_index = get_cell_index(next_position.x, next_position.y);
