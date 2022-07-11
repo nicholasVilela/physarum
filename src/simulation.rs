@@ -1,21 +1,18 @@
 use crate::Constants;
 use std::{mem};
 use ggez::{Context, GameResult};
-use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, SpeciesConfig, Species, config, Param, Storage};
-use rand::{Rng};
+use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, Param, Storage, ComputeProgram, RenderProgram};
 
 
 pub struct Simulation {
-    // pub trail: Trail,
     pub config: SimulationConfig,
     pub window_config: WindowConfig,
 
-    pub compute_pipeline: wgpu::ComputePipeline,
-    pub compute_map_pipeline: wgpu::ComputePipeline,
-    pub compute_map_bind_group: wgpu::BindGroup,
-    pub render_map_pipeline: wgpu::RenderPipeline,
-    pub render_pipeline: wgpu::RenderPipeline,
-    pub compute_bind_group: wgpu::BindGroup,
+    pub compute_map_program: ComputeProgram,
+    pub compute_agent_program: ComputeProgram,
+    pub render_map_program: RenderProgram,
+    pub render_agent_program: RenderProgram,
+
     pub constants_storage: Storage,
     pub agent_storage: Storage,
     pub param_storage: Storage,
@@ -33,12 +30,12 @@ impl Simulation {
         let agent_storage = Simulation::construct_agent_storage(device, &config)?;
         let map_storage = Simulation::construct_map_storage(device, &window_config)?;
 
-        let (compute_pipeline, compute_bind_group) = Simulation::construct_compute_shader(ctx, &constants_storage, &agent_storage, &param_storage, &map_storage)?;
-        let (compute_map_pipeline, compute_map_bind_group) = Simulation::construct_compute_map_shader(ctx, &map_storage, &constants_storage, &param_storage)?;
-        let render_pipeline = Simulation::construct_render_shader(ctx)?; 
-        let render_map_pipeline = Simulation::construct_render_map_shader(ctx)?;
+        let compute_agent_program = Simulation::construct_compute_agent_program(ctx, &config, &constants_storage, &agent_storage, &param_storage, &map_storage)?;
+        let compute_map_program = Simulation::construct_compute_map_program(ctx, &window_config, &map_storage, &constants_storage, &param_storage)?;
+        let render_agent_program = Simulation::construct_render_agent_program(ctx)?; 
+        let render_map_program = Simulation::construct_render_map_program(ctx)?;
 
-        let simulation = Simulation { config, window_config, compute_pipeline, compute_bind_group, compute_map_pipeline, compute_map_bind_group, render_pipeline, render_map_pipeline, constants_storage, agent_storage, param_storage, map_storage, frame: 0 };
+        let simulation = Simulation { config, window_config, compute_agent_program, compute_map_program, render_agent_program, render_map_program, constants_storage, agent_storage, param_storage, map_storage, frame: 0 };
 
         return Ok(simulation);
     }
@@ -50,70 +47,49 @@ impl Simulation {
     pub fn render(&mut self, ctx: &mut Context) -> GameResult {
         let frame = ctx.gfx.frame().clone();
 
-        let window_area = self.window_config.width * self.window_config.height;
-
         let delta_time = ctx.time.delta().as_secs_f32();
         let param = [Param { delta_time, frame: self.frame as u32 }];
 
         ctx.gfx.wgpu().queue.write_buffer(&self.param_storage.buffer, 0, bytemuck::cast_slice(&param));
         let command_encoder = ctx.gfx.commands().unwrap();
 
-        // Update Agents
-        {
-            let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-            pass.set_pipeline(&self.compute_pipeline);
-            pass.set_bind_group(0, &self.compute_bind_group, &[]);
-            let work_group_count = (1.0 + self.config.agent_count as f32 / 32.0).ceil() as u32;
-            pass.dispatch(work_group_count, 1, 1);
-        }
-
         // Update Map
         {
-            let mut pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-            pass.set_pipeline(&self.compute_map_pipeline);
-            pass.set_bind_group(0, &self.compute_map_bind_group, &[]);
-            let work_group_count = (1.0 + ((self.window_config.width * self.window_config.height) as f32 / 32.0)) as u32;
-            pass.dispatch(work_group_count, 1, 1);
+            self.compute_map_program.process(command_encoder)?;
+        }
+
+        // Update Agents
+        {
+            self.compute_agent_program.process(command_encoder)?;
         }
 
         // Render Map
         {
-            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
-                    view: frame.wgpu().1,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            }); 
+            let window_area = (self.window_config.width * self.window_config.height) as u32;
+            let color_attachments = &[wgpu::RenderPassColorAttachment {
+                view: frame.wgpu().1,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: true,
+                },
+            }];
 
-            pass.set_pipeline(&self.render_map_pipeline);
-            pass.set_vertex_buffer(0, self.map_storage.buffer.slice(..));
-            pass.draw(0..1, 0..window_area as u32);
+            self.render_map_program.process(command_encoder, color_attachments, vec![&self.map_storage], 0..1, 0..window_area)?;
         }
 
         // Render Agents
         {
-            let mut pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
-                    view: frame.wgpu().1,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            }); 
+            let color_attachments = &[wgpu::RenderPassColorAttachment {
+                view: frame.wgpu().1,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                },
+            }];
 
-            pass.set_pipeline(&self.render_pipeline);
-            pass.set_vertex_buffer(0, self.agent_storage.buffer.slice(..));
-            pass.draw(0..1, 0..self.config.agent_count as u32);
+            self.render_agent_program.process(command_encoder, color_attachments, vec![&self.agent_storage], 0..1, 0..self.config.agent_count as u32)?;
         }
         
         self.frame += 1;
@@ -193,7 +169,7 @@ impl Simulation {
         return Ok(storage);
     }
 
-    fn construct_compute_shader(ctx: &mut Context, constants_storage: &Storage, agent_storage: &Storage, param_storage: &Storage, map_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+    fn construct_compute_agent_program(ctx: &mut Context, simulation_config: &SimulationConfig, constants_storage: &Storage, agent_storage: &Storage, param_storage: &Storage, map_storage: &Storage) -> GameResult<ComputeProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_agents.wgsl"))?;
@@ -268,10 +244,13 @@ impl Simulation {
             ],
         });
 
-        return Ok((compute_pipeline, compute_bind_group));
+        let work_group_count = (1.0 + simulation_config.agent_count as f32 / 32.0).ceil() as u32;
+        let compute_agent_program = ComputeProgram::new(compute_pipeline, vec![compute_bind_group], work_group_count)?;
+
+        return Ok(compute_agent_program);
     }
 
-    fn construct_compute_map_shader(ctx: &mut Context, map_storage: &Storage, constants_storage: &Storage, param_storage: &Storage) -> GameResult<(wgpu::ComputePipeline, wgpu::BindGroup)> {
+    fn construct_compute_map_program(ctx: &mut Context, window_config: &WindowConfig, map_storage: &Storage, constants_storage: &Storage, param_storage: &Storage) -> GameResult<ComputeProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_map_shader = util::construct_shader_module(device, "Compute Map Shader", include_str!("shaders/update_map.wgsl"))?;
@@ -333,10 +312,13 @@ impl Simulation {
             ],
         });
 
-        return Ok((compute_map_pipeline, compute_map_bind_group));
+        let work_group_count = (1.0 + ((window_config.width * window_config.height) as f32 / 32.0)) as u32;
+        let compute_map_program = ComputeProgram::new(compute_map_pipeline, vec![compute_map_bind_group], work_group_count)?;
+
+        return Ok(compute_map_program);
     }
 
-    fn construct_render_shader(ctx: &mut Context) -> GameResult<wgpu::RenderPipeline> {
+    fn construct_render_agent_program(ctx: &mut Context) -> GameResult<RenderProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let render_shader = util::construct_shader_module(device, "Render Shader", include_str!("shaders/render_agents.wgsl"))?;
@@ -385,10 +367,12 @@ impl Simulation {
             },
         )?;
 
-        return Ok(render_pipeline);
+        let render_agent_program = RenderProgram::new(render_pipeline, vec![])?;
+
+        return Ok(render_agent_program);
     }
 
-    fn construct_render_map_shader(ctx: &mut Context) -> GameResult<wgpu::RenderPipeline> {
+    fn construct_render_map_program(ctx: &mut Context) -> GameResult<RenderProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let render_shader = util::construct_shader_module(device, "Render Map Shader", include_str!("shaders/render_map.wgsl"))?;
@@ -437,6 +421,8 @@ impl Simulation {
             },
         )?;
 
-        return Ok(render_map_pipeline);
+        let render_map_program = RenderProgram::new(render_map_pipeline, vec![])?;
+
+        return Ok(render_map_program);
     } 
 }
