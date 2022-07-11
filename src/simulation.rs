@@ -40,7 +40,7 @@ impl Simulation {
         return Ok(simulation);
     }
 
-    pub fn reset(&mut self, ctx: &mut Context) -> GameResult {
+    pub fn reset(&mut self, _ctx: &mut Context) -> GameResult {
         return Ok(());
     }
 
