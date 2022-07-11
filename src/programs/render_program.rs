@@ -24,6 +24,7 @@ impl RenderProgram {
 
         pass.set_pipeline(&self.pipeline);
         vertex_storages.iter().enumerate().for_each(|(i, storage)| pass.set_vertex_buffer(i as u32, storage.buffer.slice(..)));
+        self.bind_groups.iter().enumerate().for_each(|(i, group)| pass.set_bind_group(i as u32, group, &[]));
         pass.draw(vertex_range, instance_range);
         
         return Ok(());
