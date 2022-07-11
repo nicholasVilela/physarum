@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use crate::{Pattern};
 
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

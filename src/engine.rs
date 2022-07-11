@@ -13,7 +13,7 @@ impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
         let simulation_config = load::<SimulationConfig>("simulation")?;
         let window_config = load::<WindowConfig>("window")?;
-        let simulation = Simulation::new(ctx, simulation_config, window_config)?;
+        let simulation = Simulation::new(ctx, simulation_config, window_config.clone())?;
         let running = false;
         let paused = false;
 
@@ -22,7 +22,7 @@ impl Engine {
             graphics::FontData::from_path(ctx, "/fonts/BN6FontBold.ttf")?,
         );
 
-        let engine = Engine { simulation, window_config , running, paused };
+        let engine = Engine { simulation, window_config, running, paused };
 
         return Ok(engine);
     }

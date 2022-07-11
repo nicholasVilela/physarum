@@ -51,7 +51,8 @@ fn scale_to_range_01(state: u32) -> f32 {
 [[group(0), binding(0)]] var<uniform> constants: Constants;
 [[group(0), binding(1)]] var<uniform> param: Param;
 [[group(0), binding(2)]] var<storage, read_write> agent_src: Agents;
-[[group(0), binding(3)]] var<storage, read_write> map: Map;
+[[group(0), binding(3)]] var<storage, read> map_src: Map;
+[[group(0), binding(4)]] var<storage, read_write> map_dst: Map;
 
 fn get_cell_index(x: f32, y: f32) -> i32 {
     let size = constants.window_width;

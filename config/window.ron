@@ -1,4 +1,5 @@
 WindowConfig(
+    title: "Physarum",
     width: 500,
     height: 500,
     background: Color(
