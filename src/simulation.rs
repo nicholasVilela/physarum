@@ -1,5 +1,3 @@
-#![feature(string_remove_matches)]
-
 use crate::Constants;
 use std::{mem, fs};
 use ggez::{Context, GameResult};
@@ -55,7 +53,14 @@ impl Simulation {
         return Ok(simulation);
     }
 
-    pub fn reset(&mut self, _ctx: &mut Context) -> GameResult {
+    pub fn reset(&mut self, ctx: &mut Context) -> GameResult {
+        let agent_data = Simulation::construct_agents(&self.config)?;
+        let map_data = Simulation::construct_trail_map(&self.window_config)?;
+
+        ctx.gfx.wgpu().queue.write_buffer(&self.agent_storage.buffer, 0, bytemuck::cast_slice(&agent_data));
+        ctx.gfx.wgpu().queue.write_buffer(&self.map_storages[0].buffer, 0, bytemuck::cast_slice(&map_data));
+        ctx.gfx.wgpu().queue.write_buffer(&self.map_storages[1].buffer, 0, bytemuck::cast_slice(&map_data));
+
         return Ok(());
     }
 
@@ -162,7 +167,7 @@ impl Simulation {
     fn construct_agent_storage(device: &wgpu::Device, simulation_config: &SimulationConfig) -> GameResult<Storage> {
         let size = mem::size_of::<Agent>() * simulation_config.agent_count as usize;
         let data = Simulation::construct_agents(simulation_config)?;
-        let buffer = util::construct_buffer_init(device, "Agent Buffer", &data, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE)?;
+        let buffer = util::construct_buffer_init(device, "Agent Buffer", &data, wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST)?;
 
         let storage = Storage { size, buffer };
 
@@ -291,7 +296,7 @@ impl Simulation {
         let compute_bind_group_layout = util::construct_bind_group_layout(device, "Compute Agent Bind Group Layout", compute_bind_group_entries)?;
         let compute_pipeline_layout = util::construct_pipeline_layout(device, "Compute Agent Pipeline Layout", &vec![&compute_bind_group_layout], &vec![])?;
         let compute_pipeline = util::construct_compute_pipeline(device, "Compute Agent Pipeline", Some(&compute_pipeline_layout), &compute_shader, "main")?;
-        
+
         let mut compute_bind_groups = Vec::new();
 
         for i in 0..2 {

@@ -1,6 +1,6 @@
 SpeciesConfig(
     sensor_size: 1.0,
-    sensor_angle: 20.0,
+    sensor_angle: 10.0,
     sensor_distance: 0.05,
     turn_speed: 10.0,
     move_speed: 1.0,

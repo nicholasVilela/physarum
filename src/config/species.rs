@@ -4,9 +4,9 @@ use ggez::{graphics::Color};
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct SpeciesConfig {
+    pub sensor_size: f32,
     pub sensor_angle: f32,
     pub sensor_distance: f32,
-    pub sensor_size: f32,
     pub turn_speed: f32,
     pub move_speed: f32,
     pub random_forward_strength: f32,
