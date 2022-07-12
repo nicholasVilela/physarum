@@ -1,7 +1,9 @@
+#![feature(string_remove_matches)]
+
 use crate::Constants;
-use std::{mem};
+use std::{mem, fs};
 use ggez::{Context, GameResult};
-use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, Param, Storage, ComputeProgram, RenderProgram};
+use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, Param, Storage, ComputeProgram, RenderProgram, config, SpeciesConfig, Species};
 
 
 pub struct Simulation {
@@ -29,8 +31,9 @@ impl Simulation {
         let param_storage = Simulation::construct_param_storage(device)?;
         let agent_storage = Simulation::construct_agent_storage(device, &config)?;
         let map_storages = Simulation::construct_map_storages(device, &window_config)?;
+        let species_storage = Simulation::construct_species_storage(device)?;
 
-        let compute_agent_program = Simulation::construct_compute_agent_program(ctx, &config, &constants_storage, &agent_storage, &param_storage, &map_storages)?;
+        let compute_agent_program = Simulation::construct_compute_agent_program(ctx, &config, &constants_storage, &agent_storage, &param_storage, &map_storages, &species_storage)?;
         let compute_map_program = Simulation::construct_compute_map_program(ctx, &window_config, &map_storages, &constants_storage, &param_storage)?;
         let render_agent_program = Simulation::construct_render_agent_program(ctx)?; 
         let render_map_program = Simulation::construct_render_map_program(ctx)?;
@@ -192,7 +195,32 @@ impl Simulation {
         return Ok(storages);
     }
 
-    fn construct_compute_agent_program(ctx: &mut Context, simulation_config: &SimulationConfig, constants_storage: &Storage, agent_storage: &Storage, param_storage: &Storage, map_storages: &Vec<Storage>) -> GameResult<ComputeProgram> {
+    fn construct_species_storage(device: &wgpu::Device) -> GameResult<Storage> {
+        let size = mem::size_of::<Species>();
+        let mut data = Vec::new();
+        let path = format!("{}/config/species/", env!("CARGO_MANIFEST_DIR"));
+        let dir = fs::read_dir(path)?;
+        
+        for file in dir {            
+            let mut name = file.unwrap().file_name().into_string().unwrap();
+            
+            let offset = name.find('.').unwrap_or(name.len());
+            name.drain(offset..);
+            
+            let config = config::load::<SpeciesConfig>(&format!("species/{}", &name))?;
+            let species = Species::new(config)?;
+            
+            data.push(species);
+        }
+        
+        let buffer = util::construct_buffer_init(device, &format!("Species Buffer"), &data, wgpu::BufferUsages::STORAGE)?;
+        
+        let storage = Storage{ size, buffer };
+        
+        return Ok(storage);
+    }
+
+    fn construct_compute_agent_program(ctx: &mut Context, simulation_config: &SimulationConfig, constants_storage: &Storage, agent_storage: &Storage, param_storage: &Storage, map_storages: &Vec<Storage>, species_storage: &Storage) -> GameResult<ComputeProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let compute_shader = util::construct_shader_module(device, "Compute Shader", include_str!("shaders/update_agents.wgsl"))?;
@@ -222,6 +250,16 @@ impl Simulation {
                 binding: 2,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(species_storage.size as _),
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
                     has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(agent_storage.size as _),
@@ -229,7 +267,7 @@ impl Simulation {
                 count: None,
             },
             wgpu::BindGroupLayoutEntry {
-                binding: 3,
+                binding: 4,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -239,7 +277,7 @@ impl Simulation {
                 count: None,
             },
             wgpu::BindGroupLayoutEntry {
-                binding: 4,
+                binding: 5,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -249,12 +287,11 @@ impl Simulation {
                 count: None,
             },
         ];
-        let compute_bind_group_layout = util::construct_bind_group_layout(device, "Compute Agent Bind Group Layout", compute_bind_group_entries)?;
 
+        let compute_bind_group_layout = util::construct_bind_group_layout(device, "Compute Agent Bind Group Layout", compute_bind_group_entries)?;
         let compute_pipeline_layout = util::construct_pipeline_layout(device, "Compute Agent Pipeline Layout", &vec![&compute_bind_group_layout], &vec![])?;
         let compute_pipeline = util::construct_compute_pipeline(device, "Compute Agent Pipeline", Some(&compute_pipeline_layout), &compute_shader, "main")?;
-
-
+        
         let mut compute_bind_groups = Vec::new();
 
         for i in 0..2 {
@@ -272,14 +309,18 @@ impl Simulation {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: agent_storage.buffer.as_entire_binding(),
+                        resource: species_storage.buffer.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 3,
-                        resource: map_storages[i].buffer.as_entire_binding(),
+                        resource: agent_storage.buffer.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 4,
+                        resource: map_storages[i].buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 5,
                         resource: map_storages[(i + 1) % 2].buffer.as_entire_binding(),
                     },
                 ],

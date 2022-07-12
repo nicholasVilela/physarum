@@ -2,6 +2,7 @@ use std::{f32::consts::{TAU}};
 use rand::{Rng};
 use ggez::{GameResult};
 use bytemuck::{Pod, Zeroable};
+use crate::{Species};
 
 
 #[repr(C)]
@@ -9,7 +10,7 @@ use bytemuck::{Pod, Zeroable};
 pub struct Agent {
     pub position: [f32; 2],
     pub angle: f32,
-    pub seed: f32,
+    pub species: u32,
 }
 
 impl Agent {
@@ -17,12 +18,12 @@ impl Agent {
         let angle = rng.gen::<f32>() * TAU;
         // let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
         let position = [0.0, 0.0];
-        let seed = rng.gen_range(-1000000.0..1000000.0);
+        let species = 0;
 
         let agent = Agent {
             position,
             angle,
-            seed,
+            species,
         };
 
         return Ok(agent);

@@ -1,0 +1,16 @@
+SpeciesConfig(
+    sensor_size: 1.0,
+    sensor_angle: 20.0,
+    sensor_distance: 0.05,
+    turn_speed: 10.0,
+    move_speed: 1.0,
+    random_forward_strength:1.0,
+    random_left_strength: 1.0,
+    random_right_strength: 1.0,
+    color: Color(
+        r: 1.0,
+        g: 0.0,
+        b: 1.0,
+        a: 1.0,
+    ),
+)
