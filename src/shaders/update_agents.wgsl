@@ -55,8 +55,6 @@ fn scale_to_range_01(state: u32) -> f32 {
 [[group(0), binding(4)]] var<storage, read_write> map_dst: Map;
 
 fn get_cell_index(p: vec2<f32>) -> i32 {
-    // let pos = vec2<f32>(min(1.0, max(-1.0, p.x)), min(1.0, max(-1.0, p.y)));
-
     var pos = p;
 
     if (pos.x > 1.0) {
@@ -76,14 +74,8 @@ fn get_cell_index(p: vec2<f32>) -> i32 {
     let size = constants.window_width;
     let half = size / 2.0;
 
-    let pos_x = (pos.x * half) + half;
-    let pos_y = (pos.y * half) + half;
-
-    // var pos_x = (pos.x + 1.0) / 2.0 * size;
-    // var pos_y = (pos.y + 1.0) / 2.0 * size;
-
-    // let rounded_x = min(size, max(0.0, floor(pos_x)));
-    // let rounded_y = min(size, max(0.0, floor(pos_y)));
+    var pos_x = (pos.x + 1.0) / 2.0 * size;
+    var pos_y = (pos.y + 1.0) / 2.0 * size;
 
     let rounded_x = floor(pos_x);
     let rounded_y = floor(pos_y);
@@ -157,23 +149,14 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let seed = u32(agent.position.y * constants.window_width + agent.position.x) * u32(agent.seed);
     var random = hash(seed + hash(u32(agent.seed)) + hash(index + param.frame));
 
-    // let sensor_size = 1.0;
-    // let sensor_angle = 50.0;
-    // let sensor_distance = 0.01;
-    // let turn_speed = 10.0;
-    // let move_speed = 0.3;
-    // let forward_random_strength = -0.5;
-    // let right_random_strength = 0.0;
-    // let left_random_strength = 0.0;
-
     let sensor_size = 1.0;
-    let sensor_angle = 20.0;
-    let sensor_distance = 0.1;
-    let turn_speed = 5.0;
+    let sensor_angle = 90.0;
+    let sensor_distance = 0.05;
+    let turn_speed = 10.0;
     let move_speed = 1.0;
-    let forward_random_strength = -0.5;
-    let right_random_strength = 0.0;
-    let left_random_strength = 0.0;
+    let forward_random_strength = 1.0;
+    let right_random_strength = 1.0;
+    let left_random_strength = 1.0;
 
     let sensor_angle_rad = sensor_angle * (PI / 180.0);
     let weight_forward = sense(agent, sensor_size, sensor_distance, 0.0);
@@ -204,9 +187,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         var random = hash(random + u32(agent.seed));
         var random_angle = scale_to_range_01(random) * TAU;
 
-        // next_position.x = min(1.0, max(-1.0, next_position.x)); 
-        // next_position.y = min(1.0, max(-1.0, next_position.y));
-
         if (next_position.x >= 1.0) {
             next_position.x = 1.0;
         }
@@ -225,7 +205,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     }
     else {
         let map_index = get_cell_index(next_position);
-        map_dst.trail[map_index].value = 1.0;
+        map_dst.trail[map_index].value = map_dst.trail[map_index].value + 0.005;
     }
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);

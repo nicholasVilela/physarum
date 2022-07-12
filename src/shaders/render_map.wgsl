@@ -19,5 +19,23 @@ fn main_vs(
 
 [[stage(fragment)]]
 fn main_fs(trail_output: TrailOutput) -> [[location(0)]] vec4<f32> {
-    return vec4<f32>(0.0, 1.0, 1.0, trail_output.value);
+    var v = trail_output.value;
+    var c1 = v;
+    var c2 = 0.0;
+    var c3 = 0.0;
+
+    if (v > 0.33 && v < 0.66) {
+        c1 = 0.33;
+        c2 = v - 0.33;
+    }
+    if (v > 0.66) {
+        c1 = 0.33;
+        c2 = 0.33;
+        c3 = v - 0.66;
+        c1 = 0.33 - c3;
+    }
+
+    return vec4<f32>(c1,c2,c3, 1.0);
+
+    // return vec4<f32>(1.0, 0.0, 1.0, trail_output.value);
 }

@@ -94,20 +94,20 @@ impl Simulation {
         }
         command_encoder.pop_debug_group();
 
-        command_encoder.push_debug_group("Render Agents");
-        {
-            let color_attachments = &[wgpu::RenderPassColorAttachment {
-                view: frame.wgpu().1,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            }];
+        // command_encoder.push_debug_group("Render Agents");
+        // {
+        //     let color_attachments = &[wgpu::RenderPassColorAttachment {
+        //         view: frame.wgpu().1,
+        //         resolve_target: None,
+        //         ops: wgpu::Operations {
+        //             load: wgpu::LoadOp::Load,
+        //             store: true,
+        //         },
+        //     }];
 
-            self.render_agent_program.process(command_encoder, color_attachments, vec![&self.agent_storage], 0..1, 0..self.config.agent_count as u32)?;
-        }
-        command_encoder.pop_debug_group();
+        //     self.render_agent_program.process(command_encoder, color_attachments, vec![&self.agent_storage], 0..1, 0..self.config.agent_count as u32)?;
+        // }
+        // command_encoder.pop_debug_group();
         
         self.frame += 1;
 
