@@ -1,6 +1,6 @@
 SimulationConfig(
-    agent_count: 1,
-    evaporation_rate: 1.0,
-    diffusion_rate: 0.1,
+    agent_count: 100,
+    evaporation_rate: 10.0,
+    diffusion_rate: 10.0,
     diffusion_strength: 0.6,
 )

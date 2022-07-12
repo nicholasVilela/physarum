@@ -58,11 +58,14 @@ fn get_cell_index(x: f32, y: f32) -> i32 {
     let size = constants.window_width;
     let half = size / 2.0;
 
-    var pos_x = (x * half) + half;
-    var pos_y = (y * half) + half;
+    // var pos_x = (x * half) + half;
+    // var pos_y = (y * half) + half;
 
-    let rounded_x = floor(pos_x);
-    let rounded_y = floor(pos_y);
+    var pos_x = (x + 1.0) / 2.0 * size;
+    var pos_y = (y + 1.0) / 2.0 * size;
+
+    let rounded_x = min(size, max(0.0, floor(pos_x)));
+    let rounded_y = min(size, max(0.0, floor(pos_y)));
 
     let index = i32((size * rounded_y) + rounded_x);
 
@@ -146,10 +149,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     // let left_random_strength = 0.0;
 
     let sensor_size = 1.0;
-    let sensor_angle = 50.0;
-    let sensor_distance = 0.001;
+    let sensor_angle = 100.0;
+    let sensor_distance = 0.04;
     let turn_speed = 1.0;
-    let move_speed = 1.0;
+    let move_speed = 0.5;
     let forward_random_strength = -0.5;
     let right_random_strength = 0.0;
     let left_random_strength = 0.0;
@@ -189,9 +192,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     }
     else {
         let map_index = get_cell_index(next_position.x, next_position.y);
-        var trail = map_src.trail[map_index];
-        trail.value = 1.0;
-        map_dst.trail[map_index] = trail;
+        map_dst.trail[map_index].value = 1.0;
     }
 
     agent_src.agents[index] = Agent(next_position, next_angle, 0.0);

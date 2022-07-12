@@ -26,27 +26,45 @@ struct Map {
 [[group(0), binding(2)]] var<uniform> constants: Constants;
 [[group(0), binding(3)]] var<uniform> param: Param;
 
-fn who_cell(x : i32, y : i32) -> i32 {
+fn who_cell(pos: vec2<i32>) -> i32 {
     let size = i32(constants.window_width);
 
-    var _x = min(size, max(0, x));
-    var _y = min(size, max(0, y));
+    var x = min(size, max(0, pos.x));
+    var y = min(size, max(0, pos.y));
 
-    return  (_y * size) + _x ;
+    return  (y * size) + x;
 }
 
-fn get_cell_index(x: f32, y: f32) -> i32 {
-    let x = min(1.0, max(-1.0, x));
-    let y = min(1.0, max(-1.0, y));
+fn get_cell_index(p: vec2<f32>) -> i32 {
+    // let pos = vec2<f32>(min(1.0, max(-1.0, p.x)), min(1.0, max(-1.0, p.y)));
+
+    var pos = p;
+
+    if (pos.x >= 1.0) {
+        pos.x = 1.0;
+    }
+    else if (pos.x <= 0.0) {
+        pos.x = 0.0;
+    }
+
+    if (pos.y >= 1.0) {
+        pos.y = 1.0;
+    }
+    else if (pos.y <= 0.0) {
+        pos.y = 0.0;
+    }
 
     let size = constants.window_width;
     let half = size / 2.0;
 
-    let pos_x = (x * half) + half;
-    let pos_y = (y * half) + half;
+    // let pos_x = (pos.x * half) + half;
+    // let pos_y = (pos.y * half) + half;
 
-    let rounded_x = floor(pos_x);
-    let rounded_y = floor(pos_y);
+    var pos_x = (pos.x + 1.0) / 2.0 * size;
+    var pos_y = (pos.y + 1.0) / 2.0 * size;
+
+    let rounded_x = min(size, max(0.0, floor(pos_x)));
+    let rounded_y = min(size, max(0.0, floor(pos_y)));
 
     let index = i32((size * rounded_y) + rounded_x);
 
@@ -66,91 +84,31 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let diffusion_rate = constants.diffusion_rate;
     let diffusion_strength = constants.diffusion_strength;
 
-    let distance = 0.1;
+    let distance = 1.0;
 
-    let cell_x = map_src.trail[index].position.x;
-    let cell_y = map_src.trail[index].position.y;
+    let pos = map_src.trail[index].position;
 
-    map_dst.trail[index].value = map_src.trail[index].value - evaporation_rate * param.delta_time;
+    let l_pos = vec2<f32>(pos.x + distance, pos.y);
+    let r_pos = vec2<f32>(pos.x - distance, pos.y);
+    let t_pos = vec2<f32>(pos.x, pos.y - distance);
+    let b_pos = vec2<f32>(pos.x, pos.y + distance);
 
-    let left_cell_distance = vec2<f32>(cell_x + distance, cell_y);
-    let right_cell_distance = vec2<f32>(cell_x - distance, cell_y);
+    let l_index = get_cell_index(l_pos);
+    let r_index = get_cell_index(r_pos);
+    let t_index = get_cell_index(t_pos);
+    let b_index = get_cell_index(b_pos);
 
-    let left_index = get_cell_index(left_cell_distance.x, left_cell_distance.y);
-    let right_index = get_cell_index(right_cell_distance.x, right_cell_distance.y);
+    let l_value = map_src.trail[l_index].value * diffusion_rate;
+    let r_value = map_src.trail[r_index].value * diffusion_rate;
+    let t_value = map_src.trail[t_index].value * diffusion_rate;
+    let b_value = map_src.trail[b_index].value * diffusion_rate;
 
-    let take_left = map_src.trail[left_index].value * diffusion_rate;
-    map_dst.trail[left_index].value = map_src.trail[left_index].value - take_left;
+    map_dst.trail[l_index].value = map_src.trail[l_index].value - l_value;
+    map_dst.trail[r_index].value = map_src.trail[r_index].value - r_value;
+    map_dst.trail[t_index].value = map_src.trail[t_index].value - t_value;
+    map_dst.trail[b_index].value = map_src.trail[b_index].value - b_value;
 
-    let take_right = map_src.trail[right_index].value * diffusion_rate;
-    map_dst.trail[right_index].value = map_src.trail[right_index].value - take_right;
-
-    map_dst.trail[index].value = map_src.trail[index].value + (take_left + take_right) * diffusion_strength;
-    map_dst.trail[index].value = min(1.0, max(0.0, map_src.trail[index].value));
-
-    // let cell_x = i32(i32(index) % i32(size));
-    // let cell_y = i32(i32(index) / i32(size));
-
-    // let center = map_src.trail[get_cell_index(cell_x, cell_y)];
-    // map_src.trail[index].value = center.value * evaporation_rate;
-
-    // var left_cell_distance = cell_x - distance;
-    // var right_cell_distance = cell_x + distance;
-    // var top_cell_distance = cell_y - distance;
-    // var bottom_cell_distance = cell_y + distance;
-
-    // if (left_cell_distance < 0.0) {
-    //     left_cell_distance = 0.0;
-    // }
-    // else if (left_cell_distance > 1.0) {    
-    //     left_cell_distance = 1.0;
-    // }
-    
-    // if (right_cell_distance < 0.0) {
-    //     right_cell_distance = 0.0;
-    // }
-    // else if (right_cell_distance > 1.0) {
-    //     right_cell_distance = 1.0;
-    // }
-
-    // if (top_cell_distance < 0.0) {
-    //     top_cell_distance = 0.0;
-    // }
-    // else if (top_cell_distance > 1.0) {
-    //     top_cell_distance = 1.0;
-    // }
-
-    // if (bottom_cell_distance < 0.0) {
-    //     bottom_cell_distance = 0.0;
-    // }
-    // else if (bottom_cell_distance > 1.0) {
-    //     bottom_cell_distance = 1.0;
-    // }
-
-    // let _left = get_cell_index(left_cell_distance, cell_y);
-    // let _right = get_cell_index(right_cell_distance, cell_y);
-    // let _top = get_cell_index(cell_x, top_cell_distance);
-    // let _bottom = get_cell_index(cell_x, bottom_cell_distance);
-
-    // let _take_left = map_src.trail[_left].value * diffusion_rate;
-    // map_src.trail[_left].value = map_src.trail[_left].value - _take_left;
-
-    // let _take_right = map_src.trail[_right].value * diffusion_rate;
-    // map_src.trail[_right].value = map_src.trail[_right].value - _take_right;
-    
-    // let _take_top = map_src.trail[_top].value * diffusion_rate;
-    // map_src.trail[_top].value = map_src.trail[_top].value - _take_top;
-    
-    // let _take_bottom = map_src.trail[_bottom].value * diffusion_rate;
-    // map_src.trail[_bottom].value = map_src.trail[_bottom].value - _take_bottom;
-
-    // map_src.trail[index].value = map_src.trail[index].value + (_take_left + _take_right + _take_top + _take_bottom) * diffusion_strength;
-
-
-    // if (map_src.trail[index].value > 1.0) {
-    //     map_src.trail[index].value = 1.0;
-    // }
-    // else if (map_src.trail[index].value < 0.0) {
-    //     map_src.trail[index].value = 0.0;
-    // }
+    map_dst.trail[index].value = map_src.trail[index].value + (l_value + r_value + t_value + b_value) * diffusion_strength;
+    map_dst.trail[index].value = map_dst.trail[index].value - evaporation_rate * param.delta_time;
+    // map_dst.trail[index].value = min(1.0, max(0.0, map_dst.trail[index].value));
 }

@@ -39,14 +39,15 @@ impl Simulation {
             config, 
             window_config,
             compute_map_program, 
-             compute_agent_program, 
-             render_map_program, 
-             render_agent_program, 
-             constants_storage, 
-             agent_storage, 
-             param_storage, 
-             map_storages, 
-             frame: 0 };
+            compute_agent_program, 
+            render_map_program, 
+            render_agent_program, 
+            constants_storage, 
+            agent_storage, 
+            param_storage, 
+            map_storages, 
+            frame: 0 
+        };
 
         return Ok(simulation);
     }
@@ -62,21 +63,24 @@ impl Simulation {
         let param = [Param { delta_time, frame: self.frame as u32 }];
 
         ctx.gfx.wgpu().queue.write_buffer(&self.param_storage.buffer, 0, bytemuck::cast_slice(&param));
+        
         let command_encoder = ctx.gfx.commands().unwrap();
 
-        // Update Map
+        command_encoder.push_debug_group("Update Map");
         {
             self.compute_map_program.process(command_encoder, self.frame)?;
         }
+        command_encoder.pop_debug_group();
 
-        // Update Agents
+        command_encoder.push_debug_group("Update Agents");
         {
             self.compute_agent_program.process(command_encoder, self.frame)?;
         }
+        command_encoder.pop_debug_group();
 
-        // Render Map
+        command_encoder.push_debug_group("Render Map");
         {
-            let window_area = (self.window_config.width * self.window_config.height) as u32;
+            let window_area = (self.window_config.width * self.window_config.height) as u32 / 4;
             let color_attachments = &[wgpu::RenderPassColorAttachment {
                 view: frame.wgpu().1,
                 resolve_target: None,
@@ -86,10 +90,11 @@ impl Simulation {
                 },
             }];
 
-            self.render_map_program.process(command_encoder, color_attachments, vec![&self.map_storages[self.frame % 2]], 0..1, 0..window_area)?;
+            self.render_map_program.process(command_encoder, color_attachments, vec![&self.map_storages[(self.frame + 1) % 2]], 0..1, 0..window_area)?;
         }
+        command_encoder.pop_debug_group();
 
-        // Render Agents
+        command_encoder.push_debug_group("Render Agents");
         {
             let color_attachments = &[wgpu::RenderPassColorAttachment {
                 view: frame.wgpu().1,
@@ -102,6 +107,7 @@ impl Simulation {
 
             self.render_agent_program.process(command_encoder, color_attachments, vec![&self.agent_storage], 0..1, 0..self.config.agent_count as u32)?;
         }
+        command_encoder.pop_debug_group();
         
         self.frame += 1;
 
@@ -123,8 +129,8 @@ impl Simulation {
     fn construct_trail_map(window_config: &WindowConfig) -> GameResult<Vec<Trail>> {
         let mut trail_map = Vec::new();
 
-        for y in 0..window_config.height {
-            for x in 0..window_config.width {
+        for y in 0..window_config.height / 2 {
+            for x in 0..window_config.width / 2 {
                 let xb = (window_config.width / 2) as f32;
                 let yb = (window_config.height / 2) as f32;
                 
@@ -171,7 +177,7 @@ impl Simulation {
     }
 
     fn construct_map_storages(device: &wgpu::Device, window_config: &WindowConfig) -> GameResult<Vec<Storage>> {
-        let size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
+        let size = (mem::size_of::<Trail>() * (window_config.width as usize / 2) * (window_config.height as usize / 2));
         let data = Simulation::construct_trail_map(window_config)?;
 
         let mut storages = Vec::new();
@@ -282,7 +288,7 @@ impl Simulation {
             compute_bind_groups.push(compute_bind_group);
         }
 
-        let work_group_count = (1.0 + simulation_config.agent_count as f32 / 32.0).ceil() as u32;
+        let work_group_count = (simulation_config.agent_count as f32 / 32.0).ceil() as u32;
         let compute_agent_program = ComputeProgram::new(compute_pipeline, compute_bind_groups, (work_group_count, 1, 1))?;
 
         return Ok(compute_agent_program);
@@ -370,7 +376,7 @@ impl Simulation {
             compute_map_bind_groups.push(compute_map_bind_group);
         }
 
-        let work_group_count = (1.0 + ((window_config.width * window_config.height) as f32 / 32.0)) as u32;
+        let work_group_count = ((window_config.width * window_config.height) as f32 / 32.0) as u32;
         let compute_map_program = ComputeProgram::new(compute_map_pipeline, compute_map_bind_groups, (work_group_count, 1, 1))?;
 
         return Ok(compute_map_program);
