@@ -80,7 +80,7 @@ impl Simulation {
 
         command_encoder.push_debug_group("Render Map");
         {
-            let window_area = (self.window_config.width * self.window_config.height) as u32 / 4;
+            let window_area = (self.window_config.width * self.window_config.height) as u32;
             let color_attachments = &[wgpu::RenderPassColorAttachment {
                 view: frame.wgpu().1,
                 resolve_target: None,
@@ -129,8 +129,8 @@ impl Simulation {
     fn construct_trail_map(window_config: &WindowConfig) -> GameResult<Vec<Trail>> {
         let mut trail_map = Vec::new();
 
-        for y in 0..window_config.height / 2 {
-            for x in 0..window_config.width / 2 {
+        for y in 0..window_config.height {
+            for x in 0..window_config.width {
                 let xb = (window_config.width / 2) as f32;
                 let yb = (window_config.height / 2) as f32;
                 
@@ -177,7 +177,7 @@ impl Simulation {
     }
 
     fn construct_map_storages(device: &wgpu::Device, window_config: &WindowConfig) -> GameResult<Vec<Storage>> {
-        let size = (mem::size_of::<Trail>() * (window_config.width as usize / 2) * (window_config.height as usize / 2));
+        let size = mem::size_of::<Trail>() * window_config.width as usize * window_config.height as usize;
         let data = Simulation::construct_trail_map(window_config)?;
 
         let mut storages = Vec::new();
@@ -304,26 +304,6 @@ impl Simulation {
                 binding: 0,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(map_storages[0].size as _),
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new(map_storages[0].size as _),
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(constants_storage.size as _),
@@ -331,12 +311,32 @@ impl Simulation {
                 count: None,
             },
             wgpu::BindGroupLayoutEntry {
-                binding: 3,
+                binding: 1,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(param_storage.size as _),
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(map_storages[0].size as _),
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(map_storages[0].size as _),
                 },
                 count: None,
             },
@@ -356,19 +356,19 @@ impl Simulation {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: map_storages[i].buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: map_storages[(i + 1) % 2].buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
                         resource: constants_storage.buffer.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 3,
+                        binding: 1,
                         resource: param_storage.buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: map_storages[i].buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: map_storages[(i + 1) % 2].buffer.as_entire_binding(),
                     },
                 ],
             });

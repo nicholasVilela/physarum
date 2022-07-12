@@ -54,18 +54,39 @@ fn scale_to_range_01(state: u32) -> f32 {
 [[group(0), binding(3)]] var<storage, read> map_src: Map;
 [[group(0), binding(4)]] var<storage, read_write> map_dst: Map;
 
-fn get_cell_index(x: f32, y: f32) -> i32 {
+fn get_cell_index(p: vec2<f32>) -> i32 {
+    // let pos = vec2<f32>(min(1.0, max(-1.0, p.x)), min(1.0, max(-1.0, p.y)));
+
+    var pos = p;
+
+    if (pos.x > 1.0) {
+        pos.x = 1.0;
+    }
+    else if (pos.x < -1.0) {
+        pos.x = -1.0;
+    }
+
+    if (pos.y > 1.0) {
+        pos.y = 1.0;
+    }
+    else if (pos.y < -1.0) {
+        pos.y = -1.0;
+    }
+
     let size = constants.window_width;
     let half = size / 2.0;
 
-    // var pos_x = (x * half) + half;
-    // var pos_y = (y * half) + half;
+    let pos_x = (pos.x * half) + half;
+    let pos_y = (pos.y * half) + half;
 
-    var pos_x = (x + 1.0) / 2.0 * size;
-    var pos_y = (y + 1.0) / 2.0 * size;
+    // var pos_x = (pos.x + 1.0) / 2.0 * size;
+    // var pos_y = (pos.y + 1.0) / 2.0 * size;
 
-    let rounded_x = min(size, max(0.0, floor(pos_x)));
-    let rounded_y = min(size, max(0.0, floor(pos_y)));
+    // let rounded_x = min(size, max(0.0, floor(pos_x)));
+    // let rounded_y = min(size, max(0.0, floor(pos_y)));
+
+    let rounded_x = floor(pos_x);
+    let rounded_y = floor(pos_y);
 
     let index = i32((size * rounded_y) + rounded_x);
 
@@ -79,8 +100,6 @@ fn sense(agent: Agent, sensor_size: f32, sensor_distance: f32, sensor_angle_offs
     let sensor_angle = agent.angle + sensor_angle_offset;
     let sensor_direction = vec2<f32>(cos(sensor_angle), sin(sensor_angle));
     let sensor_position = agent.position + sensor_direction * sensor_distance;
-
-    let half = width / 2.0;
     
     var sum = 0.0;
 
@@ -99,10 +118,9 @@ fn sense(agent: Agent, sensor_size: f32, sensor_distance: f32, sensor_angle_offs
                     break;
                 }
 
-                let pos_x = f32(min(1.0, max(-1.0, sensor_position.x + x)));
-                let pos_y = f32(min(1.0, max(-1.0, sensor_position.y + y)));
+                var pos = vec2<f32>(sensor_position.x, sensor_position.y);
 
-                let sample = map_src.trail[get_cell_index(pos_x, pos_y)];
+                let sample = map_dst.trail[get_cell_index(pos)];
 
                 sum = sum + sample.value;
 
@@ -149,10 +167,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     // let left_random_strength = 0.0;
 
     let sensor_size = 1.0;
-    let sensor_angle = 100.0;
-    let sensor_distance = 0.04;
-    let turn_speed = 1.0;
-    let move_speed = 0.5;
+    let sensor_angle = 20.0;
+    let sensor_distance = 0.1;
+    let turn_speed = 5.0;
+    let move_speed = 1.0;
     let forward_random_strength = -0.5;
     let right_random_strength = 0.0;
     let left_random_strength = 0.0;
@@ -186,12 +204,27 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         var random = hash(random + u32(agent.seed));
         var random_angle = scale_to_range_01(random) * TAU;
 
-        next_position.x = min(1.0, max(-1.0, next_position.x)); 
-        next_position.y = min(1.0, max(-1.0, next_position.y));
+        // next_position.x = min(1.0, max(-1.0, next_position.x)); 
+        // next_position.y = min(1.0, max(-1.0, next_position.y));
+
+        if (next_position.x >= 1.0) {
+            next_position.x = 1.0;
+        }
+        else if (next_position.x <= -1.0) {
+            next_position.x = -1.0;
+        }
+
+        if (next_position.y >= 1.0) {
+            next_position.y = 1.0;
+        }
+        else if (next_position.y <= -1.0) {
+            next_position.y = -1.0;
+        }
+
         next_angle = random_angle;
     }
     else {
-        let map_index = get_cell_index(next_position.x, next_position.y);
+        let map_index = get_cell_index(next_position);
         map_dst.trail[map_index].value = 1.0;
     }
 
