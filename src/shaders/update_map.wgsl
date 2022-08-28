@@ -53,10 +53,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let size = constants.window_width;
     let index = global_id.x;
 
-    if (index >= u32(size * size)) {
-        return;
-    }
-
     let evaporation_rate = constants.evaporation_rate;
     let diffusion_rate = constants.diffusion_rate;
     let diffusion_strength = constants.diffusion_strength;
@@ -80,19 +76,10 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var t_value = map_src.trail[t_index].value * diffusion_rate;
     var b_value = map_src.trail[b_index].value * diffusion_rate;
 
-    // map_dst.trail[index].value = map_src.trail[index].value * evaporation_rate;
-
     map_dst.trail[l_index].value = map_src.trail[l_index].value - l_value;
     map_dst.trail[r_index].value = map_src.trail[r_index].value - r_value;
     map_dst.trail[t_index].value = map_src.trail[t_index].value - t_value;
     map_dst.trail[b_index].value = map_src.trail[b_index].value - b_value;
 
     map_dst.trail[index].value = map_src.trail[index].value + (l_value + r_value + t_value + b_value) * diffusion_strength;
-
-    // if (map_dst.trail[index].value > 1.0) {
-    //     map_dst.trail[index].value = 1.0;
-    // }
-    // else if (map_dst.trail[index].value < 0.00001) {
-    //     map_dst.trail[index].value = 0.0;
-    // }
 }

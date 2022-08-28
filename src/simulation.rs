@@ -74,17 +74,8 @@ impl Simulation {
         
         let command_encoder = ctx.gfx.commands().unwrap();
 
-        command_encoder.push_debug_group("Update Map");
-        {
-            self.compute_map_program.process(command_encoder, self.frame)?;
-        }
-        command_encoder.pop_debug_group();
-
-        command_encoder.push_debug_group("Update Agents");
-        {
-            self.compute_agent_program.process(command_encoder, self.frame)?;
-        }
-        command_encoder.pop_debug_group();
+        self.compute_map_program.process(command_encoder, self.frame)?;
+        self.compute_agent_program.process(command_encoder, self.frame)?;
 
         command_encoder.push_debug_group("Render Map");
         {

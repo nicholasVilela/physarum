@@ -151,10 +151,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var total = arrayLength(&agent_src.agents);
     var index = global_id.x;
 
-    if (index >= total) {
-        return;
-    }
-
     let width = constants.window_width;
     let height = constants.window_height;
 
@@ -163,20 +159,11 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
 
     var agent = agent_src.agents[index];
     let seed = u32(agent.position.y * constants.window_width + agent.position.x);
-    var random = hash(seed + hash(index + param.frame));
+    var random = hash(seed + index + param.frame);
 
     let species = species_map.species[0];
 
     let sensor_size = 1.0;
-    // let sensor_angle = 90.0;
-    // let sensor_distance = 0.05;
-    // let turn_speed = 10.0;
-    // let move_speed = 1.0;
-    // let random_forward_strength = 1.0;
-    // let random_left_strength = 1.0;
-    // let random_right_strength = 1.0;
-
-    // let sensor_size = species.sensor_size;
     let sensor_angle = species.sensor_angle;
     let sensor_distance = species.sensor_distance;
     let turn_speed = species.turn_speed;
@@ -197,7 +184,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
         agent.angle = agent.angle;
     }
     else if (weight_forward < weight_left && weight_forward < weight_right) {
-        agent.angle = agent.angle + (random_steer_strength + random_forward_strength) * 2.0 * mod_turn_speed * param.delta_time;
+        agent.angle = agent.angle + (random_steer_strength + random_forward_strength) * mod_turn_speed * param.delta_time;
     }
     else if (weight_right > weight_left) {
         agent.angle = agent.angle - (random_steer_strength + random_left_strength) * mod_turn_speed * param.delta_time;
@@ -211,7 +198,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var next_angle = agent.angle;
 
     if (next_position.x <= -1.0 || next_position.x >= 1.0 || next_position.y <= -1.0 || next_position.y >= 1.0) {
-        var random = hash(random + seed);
         var random_angle = scale_to_range_01(random) * TAU;
 
         if (next_position.x >= 1.0) {
