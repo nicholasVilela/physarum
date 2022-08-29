@@ -1,8 +1,6 @@
 # Physarum Mold Simulation
 
-This project was written in Rust using the GGEZ framework to simulate Physarum Mold with variable properties.
-
-It's recommended to use `cargo run --release` for performance.
+This project was written in Rust and WGSL using GGEZ and WGPU to simulate Physarum Mold on the GPU with variable properties.
 
 To change settings, navigate to `/config` folder in main directory. 
 
