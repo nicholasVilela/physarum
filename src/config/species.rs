@@ -12,5 +12,6 @@ pub struct SpeciesConfig {
     pub random_forward_strength: f32,
     pub random_left_strength: f32,
     pub random_right_strength: f32,
+    pub weight: f32,
     pub color: Color,
 }

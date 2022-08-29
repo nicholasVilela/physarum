@@ -9,4 +9,6 @@ pub struct WindowConfig {
     pub height: i32,
     pub background: Color,
     pub show_fps: bool,
+    pub fullscreen: bool,
+    pub auto_run: bool,
 }

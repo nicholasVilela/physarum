@@ -9,4 +9,6 @@ WindowConfig(
         a: 1.0,
     ),
     show_fps: true,
+    fullscreen: false,
+    auto_run: true,
 )

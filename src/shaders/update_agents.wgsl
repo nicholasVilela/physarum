@@ -20,6 +20,7 @@ struct Species {
     random_forward_strength: f32;
     random_left_strength: f32;
     random_right_strength: f32;
+    weight: f32;
 };
 
 struct SpeciesMap {
@@ -73,18 +74,18 @@ fn scale_to_range_01(state: u32) -> f32 {
 fn get_cell_index(p: vec2<f32>) -> i32 {
     var pos = p;
 
-    if (pos.x > 1.0) {
-        pos.x = 1.0;
-    }
-    else if (pos.x < -1.0) {
+    if (pos.x >= 1.0) {
         pos.x = -1.0;
     }
-
-    if (pos.y > 1.0) {
-        pos.y = 1.0;
+    else if (pos.x <= -1.0) {
+        pos.x = 1.0;
     }
-    else if (pos.y < -1.0) {
+
+    if (pos.y >= 1.0) {
         pos.y = -1.0;
+    }
+    else if (pos.y <= -1.0) {
+        pos.y = 1.0;
     }
 
     let size = constants.window_width;
@@ -110,45 +111,16 @@ fn sense(agent: Agent, sensor_size: f32, sensor_distance: f32, sensor_angle_offs
     let sensor_position = agent.position + sensor_direction * sensor_distance;
     
     var sum = 0.0;
+    var pos = vec2<f32>(sensor_position.x, sensor_position.y);
+    let sample = map_dst.trail[get_cell_index(pos)];
 
-    {
-        var x: f32 = -sensor_size;
-
-        loop {
-            var y: f32 = -sensor_size;
-
-            if (x == sensor_size + 1.0) {
-                break;
-            }
-
-            loop {
-                if (y == sensor_size + 1.0) {
-                    break;
-                }
-
-                var pos = vec2<f32>(sensor_position.x, sensor_position.y);
-
-                let sample = map_dst.trail[get_cell_index(pos)];
-
-                sum = sum + sample.value;
-
-                continuing {
-                    y = y + 1.0;
-                }
-            }
-
-            continuing {
-                x = x + 1.0;
-            }
-        }
-    }
+    sum = sum + sample.value;
 
     return sum;
 }
 
 [[stage(compute), workgroup_size(32)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
-    var total = arrayLength(&agent_src.agents);
     var index = global_id.x;
 
     let width = constants.window_width;
@@ -171,6 +143,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let random_forward_strength = species.random_forward_strength;
     let random_left_strength = species.random_left_strength;
     let random_right_strength = species.random_right_strength;
+    let weight = species.weight;
 
     let sensor_angle_rad = sensor_angle * (PI / 180.0);
     let weight_forward = sense(agent, sensor_size, sensor_distance, 0.0);
@@ -180,10 +153,7 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let mod_turn_speed = turn_speed * TAU;
     let random_steer_strength = scale_to_range_01(random);
 
-    if (weight_forward > weight_left && weight_forward > weight_right) {
-        agent.angle = agent.angle;
-    }
-    else if (weight_forward < weight_left && weight_forward < weight_right) {
+    if (weight_forward < weight_left && weight_forward < weight_right) {
         agent.angle = agent.angle + (random_steer_strength + random_forward_strength) * mod_turn_speed * param.delta_time;
     }
     else if (weight_right > weight_left) {
@@ -197,29 +167,21 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     var next_position = vec2<f32>(agent.position.x, agent.position.y) + direction * param.delta_time * move_speed;
     var next_angle = agent.angle;
 
-    if (next_position.x <= -1.0 || next_position.x >= 1.0 || next_position.y <= -1.0 || next_position.y >= 1.0) {
-        var random_angle = scale_to_range_01(random) * TAU;
-
-        if (next_position.x >= 1.0) {
-            next_position.x = 1.0;
-        }
-        else if (next_position.x <= -1.0) {
-            next_position.x = -1.0;
-        }
-
-        if (next_position.y >= 1.0) {
-            next_position.y = 1.0;
-        }
-        else if (next_position.y <= -1.0) {
-            next_position.y = -1.0;
-        }
-
-        next_angle = random_angle;
+    if (next_position.x >= 1.0) {
+        next_position.x = -1.0;
     }
-    else {
-        let map_index = get_cell_index(next_position);
-        map_dst.trail[map_index].value = map_dst.trail[map_index].value + 0.005;
+    else if (next_position.x <= -1.0) {
+        next_position.x = 1.0;
     }
+    if (next_position.y >= 1.0) {
+        next_position.y = -1.0;
+    }
+    else if (next_position.y <= -1.0) {
+        next_position.y = 1.0;
+    }
+
+    let map_index = get_cell_index(next_position);
+    map_dst.trail[map_index].value = map_dst.trail[map_index].value + weight;
 
     agent.position = next_position;
     agent.angle = next_angle;

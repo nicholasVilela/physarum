@@ -1,4 +1,4 @@
-use ggez::{ContextBuilder, event, conf::{WindowMode, WindowSetup}, GameResult};
+use ggez::{ContextBuilder, event, conf::{WindowMode, WindowSetup, FullscreenType}, GameResult};
 
 #[cfg(test)]
 mod tests;
@@ -34,6 +34,7 @@ pub use util::*;
 fn main() -> GameResult {
     let window_config = load::<WindowConfig>("window")?;
     let window_mode = WindowMode::default()
+        .fullscreen_type(if window_config.fullscreen { FullscreenType::True } else { FullscreenType::Windowed })
         .dimensions(window_config.width as f32, window_config.height as f32);
     let window_setup = WindowSetup::default()
         .title(&window_config.title);

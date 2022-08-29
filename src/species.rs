@@ -13,6 +13,7 @@ pub struct Species {
     pub random_forward_strength: f32,
     pub random_left_strength: f32,
     pub random_right_strength: f32,
+    pub weight: f32,
 }
 
 impl Species {
@@ -26,6 +27,7 @@ impl Species {
             random_forward_strength: config.random_forward_strength,
             random_left_strength: config.random_left_strength,
             random_right_strength: config.random_right_strength,
+            weight: config.weight,
          };
 
         return Ok(species);

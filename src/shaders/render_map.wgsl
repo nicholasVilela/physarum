@@ -21,8 +21,8 @@ fn main_vs(
 fn main_fs(trail_output: TrailOutput) -> [[location(0)]] vec4<f32> {
     var v = trail_output.value;
 
-    var r = 0.0;
-    var g = v;
+    var r = v;
+    var g = 0.0;
     var b = 0.0;
     
     var min = 0.33;
@@ -39,5 +39,7 @@ fn main_fs(trail_output: TrailOutput) -> [[location(0)]] vec4<f32> {
         r = min - b;
     }
 
-    return vec4<f32>(r, g, b, 1.0);
+    // return vec4<f32>(g, b, r, 1.0);
+    // return vec4<f32>(b, r, g, 1.0);
+    return vec4<f32>(b, g, r, 1.0);
 }

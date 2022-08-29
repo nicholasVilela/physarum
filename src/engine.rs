@@ -14,7 +14,7 @@ impl Engine {
         let simulation_config = load::<SimulationConfig>("simulation")?;
         let window_config = load::<WindowConfig>("window")?;
         let simulation = Simulation::new(ctx, simulation_config, window_config.clone())?;
-        let running = false;
+        let running = window_config.auto_run;
         let paused = false;
 
         ctx.gfx.add_font(
