@@ -1,6 +1,7 @@
 WindowConfig(
-    width: 500,
-    height: 500,
+    title: "Physarum",
+    width: 800,
+    height: 800,
     background: Color(
         r: 0.0,
         g: 0.0,
@@ -8,4 +9,6 @@ WindowConfig(
         a: 1.0,
     ),
     show_fps: true,
+    fullscreen: false,
+    auto_run: true,
 )

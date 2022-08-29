@@ -13,8 +13,8 @@ impl Engine {
     pub fn new(ctx: &mut Context) -> GameResult<Engine> {
         let simulation_config = load::<SimulationConfig>("simulation")?;
         let window_config = load::<WindowConfig>("window")?;
-        let simulation = Simulation::new(ctx, simulation_config, window_config)?;
-        let running = false;
+        let simulation = Simulation::new(ctx, simulation_config, window_config.clone())?;
+        let running = window_config.auto_run;
         let paused = false;
 
         ctx.gfx.add_font(
@@ -22,7 +22,7 @@ impl Engine {
             graphics::FontData::from_path(ctx, "/fonts/BN6FontBold.ttf")?,
         );
 
-        let engine = Engine { simulation, window_config , running, paused };
+        let engine = Engine { simulation, window_config, running, paused };
 
         return Ok(engine);
     }
@@ -60,33 +60,30 @@ impl EventHandler for Engine {
         if ctx.keyboard.is_key_just_pressed(KeyCode::R) { 
             self.simulation.reset(ctx)?;
             self.paused = false;
-         }
-        
-        self.simulation.update(ctx)?;
+        }
 
         return Ok(());
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let background_color = self.window_config.background;
-        let mut canvas = graphics::Canvas::from_frame(ctx, background_color);
-
         if self.running {
-            self.simulation.render(&mut canvas)?;
+            if self.paused { return Ok(()); }
 
-            // if self.simulation_config.render_agents {
-            //     canvas.draw(&self.agent_meshbatch, DrawParam::default());
-            //     self.agent_meshbatch.clear();
-            // }
-        }
-        else {
-            self.render_intro_text(&mut canvas)?;
-        }
+            self.simulation.render(ctx)?;
 
-        if self.window_config.show_fps {
+            if !self.window_config.show_fps { return Ok(()); }
+            
+            let mut canvas = graphics::Canvas::from_frame(ctx, None);
             self.render_fps(ctx, &mut canvas)?;
+            canvas.finish(ctx)?;
+
+            return Ok(());
         }
 
-        return canvas.finish(ctx);
+        let mut canvas = graphics::Canvas::from_frame(ctx, self.window_config.background); 
+        self.render_intro_text(&mut canvas)?;
+        canvas.finish(ctx)?;
+
+        return Ok(());
     }
 }
