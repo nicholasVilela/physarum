@@ -1840,6 +1840,7 @@ dependencies = [
  "ron",
  "serde",
  "stackblur",
+ "walkdir",
  "wgpu",
 ]
 

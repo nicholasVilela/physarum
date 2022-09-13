@@ -2,6 +2,7 @@ use crate::Constants;
 use std::{mem, fs};
 use ggez::{Context, GameResult};
 use crate::{util, Agent, Trail, SimulationConfig, WindowConfig, Param, Storage, ComputeProgram, RenderProgram, config, SpeciesConfig, Species};
+use walkdir::WalkDir;
 
 
 pub struct Simulation {
@@ -117,8 +118,14 @@ impl Simulation {
         let mut agents = Vec::new();
         let mut rng = rand::thread_rng();
 
+        let path = "./config/species";
+        let species_count = WalkDir::new(path).into_iter().count() as u32 - 1;
+
         for _ in 0..simulation_config.agent_count {
-            let agent = Agent::new(&mut rng)?;
+            let agent = Agent::default()?
+                .random_angle(&mut rng)?
+                .random_position(&mut rng)?
+                .random_species(&mut rng, species_count)?;
             agents.push(agent);
         }
 
