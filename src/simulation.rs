@@ -12,7 +12,6 @@ pub struct Simulation {
     pub compute_map_program: ComputeProgram,
     pub compute_agent_program: ComputeProgram,
     pub render_map_program: RenderProgram,
-    pub render_agent_program: RenderProgram,
 
     pub constants_storage: Storage,
     pub agent_storage: Storage,
@@ -26,29 +25,27 @@ impl Simulation {
     pub fn new(ctx: &mut Context, config: SimulationConfig, window_config: WindowConfig) -> GameResult<Simulation> {
         let device = &ctx.gfx.wgpu().device;
 
-        let constants_storage = Simulation::construct_constants_storage(device, &window_config, &config)?;
-        let param_storage = Simulation::construct_param_storage(device)?;
-        let agent_storage = Simulation::construct_agent_storage(device, &config)?;
-        let map_storages = Simulation::construct_map_storages(device, &window_config)?;
-        let species_storage = Simulation::construct_species_storage(device)?;
+        let constants_storage  = Simulation::construct_constants_storage(device, &window_config, &config)?;
+        let param_storage      = Simulation::construct_param_storage(device)?;
+        let agent_storage      = Simulation::construct_agent_storage(device, &config)?;
+        let map_storages       = Simulation::construct_map_storages(device, &window_config)?;
+        let species_storage    = Simulation::construct_species_storage(device)?;
 
         let compute_agent_program = Simulation::construct_compute_agent_program(ctx, &config, &constants_storage, &agent_storage, &param_storage, &map_storages, &species_storage)?;
-        let compute_map_program = Simulation::construct_compute_map_program(ctx, &window_config, &map_storages, &constants_storage, &param_storage)?;
-        let render_agent_program = Simulation::construct_render_agent_program(ctx)?; 
-        let render_map_program = Simulation::construct_render_map_program(ctx)?;
+        let compute_map_program   = Simulation::construct_compute_map_program(ctx, &window_config, &map_storages, &constants_storage, &param_storage)?; 
+        let render_map_program    = Simulation::construct_render_map_program(ctx, &species_storage)?;
 
         let simulation = Simulation { 
-            config, 
-            window_config,
-            compute_map_program, 
+            config               , 
+            window_config        ,
+            compute_map_program  , 
             compute_agent_program, 
-            render_map_program, 
-            render_agent_program, 
-            constants_storage, 
-            agent_storage, 
-            param_storage, 
-            map_storages, 
-            frame: 0 
+            render_map_program   , 
+            constants_storage    , 
+            agent_storage        , 
+            param_storage        , 
+            map_storages         , 
+            frame: 0             ,
         };
 
         return Ok(simulation);
@@ -58,7 +55,7 @@ impl Simulation {
         let agent_data = Simulation::construct_agents(&self.config)?;
         let map_data = Simulation::construct_trail_map(&self.window_config)?;
 
-        ctx.gfx.wgpu().queue.write_buffer(&self.agent_storage.buffer, 0, bytemuck::cast_slice(&agent_data));
+        ctx.gfx.wgpu().queue.write_buffer(&self.agent_storage.buffer  , 0, bytemuck::cast_slice(&agent_data));
         ctx.gfx.wgpu().queue.write_buffer(&self.map_storages[0].buffer, 0, bytemuck::cast_slice(&map_data));
         ctx.gfx.wgpu().queue.write_buffer(&self.map_storages[1].buffer, 0, bytemuck::cast_slice(&map_data));
 
@@ -93,21 +90,6 @@ impl Simulation {
             self.render_map_program.process(command_encoder, color_attachments, vec![&self.map_storages[(self.frame + 1) % 2]], 0..1, 0..window_area)?;
         }
         command_encoder.pop_debug_group();
-
-        // command_encoder.push_debug_group("Render Agents");
-        // {
-        //     let color_attachments = &[wgpu::RenderPassColorAttachment {
-        //         view: frame.wgpu().1,
-        //         resolve_target: None,
-        //         ops: wgpu::Operations {
-        //             load: wgpu::LoadOp::Load,
-        //             store: true,
-        //         },
-        //     }];
-
-        //     self.render_agent_program.process(command_encoder, color_attachments, vec![&self.agent_storage], 0..1, 0..self.config.agent_count as u32)?;
-        // }
-        // command_encoder.pop_debug_group();
         
         self.frame += 1;
 
@@ -125,7 +107,8 @@ impl Simulation {
             let agent = Agent::default()?
                 .random_angle(&mut rng)?
                 .random_position(&mut rng)?
-                .random_species(&mut rng, species_count)?;
+                .with_species(0)?;
+                // .random_species(&mut rng, species_count)?;
             agents.push(agent);
         }
 
@@ -199,7 +182,7 @@ impl Simulation {
     }
 
     fn construct_species_storage(device: &wgpu::Device) -> GameResult<Storage> {
-        let size = mem::size_of::<Species>();
+        let mut species_count = 0;
         let mut data = Vec::new();
         let path = format!("{}/config/species/", env!("CARGO_MANIFEST_DIR"));
         let dir = fs::read_dir(path)?;
@@ -212,10 +195,13 @@ impl Simulation {
             
             let config = config::load::<SpeciesConfig>(&format!("species/{}", &name))?;
             let species = Species::new(config)?;
+
+            species_count += 1;
             
             data.push(species);
         }
-        
+
+        let size = mem::size_of::<Species>() * species_count;
         let buffer = util::construct_buffer_init(device, &format!("Species Buffer"), &data, wgpu::BufferUsages::STORAGE)?;
         
         let storage = Storage{ size, buffer };
@@ -426,65 +412,24 @@ impl Simulation {
         return Ok(compute_map_program);
     }
 
-    fn construct_render_agent_program(ctx: &mut Context) -> GameResult<RenderProgram> {
-        let device = &ctx.gfx.wgpu().device;
-
-        let render_shader = util::construct_shader_module(device, "Render Shader", include_str!("shaders/render_agents.wgsl"))?;
-        let pipeline_layout = util::construct_pipeline_layout(device, "Render Pipeline Layout", &vec![], &vec![])?;
-        let render_pipeline = util::construct_render_pipeline(
-            device, 
-            "Render Pipeline", 
-            Some(&pipeline_layout), 
-            wgpu::VertexState {
-                module: &render_shader,
-                entry_point: "main_vs",
-                buffers: &[
-                    wgpu::VertexBufferLayout {
-                        array_stride: 16,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array![0 => Float32x2],
-                    },
-                ],
-            },
-            Some(wgpu::FragmentState {
-                module: &render_shader,
-                entry_point: "main_fs",
-                targets: &[wgpu::ColorTargetState {
-                        format: ctx.gfx.surface_format(),
-                        blend: Some(wgpu::BlendState{
-                            color: wgpu::BlendComponent{
-                                src_factor: wgpu::BlendFactor::SrcAlpha,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,},
-                            alpha: wgpu::BlendComponent::OVER
-                        }),
-                        write_mask: wgpu::ColorWrites::ALL,
-                }],
-            }),
-            None,
-            None,
-            wgpu::MultisampleState::default(),
-            wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::PointList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
-        )?;
-
-        let render_agent_program = RenderProgram::new(render_pipeline, vec![])?;
-
-        return Ok(render_agent_program);
-    }
-
-    fn construct_render_map_program(ctx: &mut Context) -> GameResult<RenderProgram> {
+    fn construct_render_map_program(ctx: &mut Context, species_storage: &Storage) -> GameResult<RenderProgram> {
         let device = &ctx.gfx.wgpu().device;
 
         let render_shader = util::construct_shader_module(device, "Render Map Shader", include_str!("shaders/render_map.wgsl"))?;
-        let pipeline_layout = util::construct_pipeline_layout(device, "Render Map Pipeline Layout", &vec![], &vec![])?;
+        let render_map_bind_group_entries = &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(species_storage.size as _),
+                },
+                count: None,
+            },
+        ];
+        let render_map_bind_group_layout = util::construct_bind_group_layout(device, "Render Map Bind Group Layout", render_map_bind_group_entries)?;
+        let pipeline_layout = util::construct_pipeline_layout(device, "Render Map Pipeline Layout", &vec![&render_map_bind_group_layout], &vec![])?;
         let render_map_pipeline = util::construct_render_pipeline(
             device, 
             "Render Map Pipeline", 
@@ -496,7 +441,7 @@ impl Simulation {
                     wgpu::VertexBufferLayout {
                         array_stride: 16,
                         step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32],
+                        attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32, 2 => Uint32],
                     },
                 ],
             },
@@ -529,7 +474,18 @@ impl Simulation {
             },
         )?;
 
-        let render_map_program = RenderProgram::new(render_map_pipeline, vec![])?;
+        let render_map_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Compute Map Bind Group"),
+            layout: &render_map_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: species_storage.buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let render_map_program = RenderProgram::new(render_map_pipeline, vec![render_map_bind_group])?;
 
         return Ok(render_map_program);
     } 

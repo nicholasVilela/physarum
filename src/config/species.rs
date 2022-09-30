@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use ggez::{graphics::Color};
 
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
@@ -13,5 +12,5 @@ pub struct SpeciesConfig {
     pub random_left_strength: f32,
     pub random_right_strength: f32,
     pub weight: f32,
-    pub color: Color,
+    pub color: [f32; 3],
 }

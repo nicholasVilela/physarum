@@ -21,6 +21,7 @@ struct Species {
     random_left_strength: f32;
     random_right_strength: f32;
     weight: f32;
+    color: vec3<f32>;
 };
 
 struct SpeciesMap {
@@ -133,9 +134,9 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let seed = u32(agent.position.y * constants.window_width + agent.position.x);
     var random = hash(seed + index + param.frame);
 
-    let species = species_map.species[0];
+    let species = species_map.species[agent.species];
 
-    let sensor_size = 1.0;
+    let sensor_size = species.sensor_size;
     let sensor_angle = species.sensor_angle;
     let sensor_distance = species.sensor_distance;
     let turn_speed = species.turn_speed;

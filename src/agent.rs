@@ -2,7 +2,6 @@ use std::{f32::consts::{TAU}};
 use rand::{Rng};
 use ggez::{GameResult};
 use bytemuck::{Pod, Zeroable};
-use walkdir::WalkDir;
 
 
 #[repr(C)]
@@ -47,6 +46,12 @@ impl Agent {
     pub fn random_species<R: Rng + ?Sized>(mut self, rng: &mut R, species_count: u32) -> GameResult<Agent> {
         let species = rng.gen_range(0..species_count) as u32;
 
+        self.species = species;
+
+        return Ok(self);
+    }
+
+    pub fn with_species(mut self, species: u32) -> GameResult<Agent> {
         self.species = species;
 
         return Ok(self);

@@ -14,6 +14,8 @@ pub struct Species {
     pub random_left_strength: f32,
     pub random_right_strength: f32,
     pub weight: f32,
+    pub color: [f32; 3],
+    pub color2: [f32; 3],
 }
 
 impl Species {
@@ -28,6 +30,8 @@ impl Species {
             random_left_strength: config.random_left_strength,
             random_right_strength: config.random_right_strength,
             weight: config.weight,
+            color: config.color,
+            color2: config.color,
          };
 
         return Ok(species);
