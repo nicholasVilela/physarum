@@ -7,7 +7,6 @@ use ggez::{GameResult};
 pub struct Constants {
     window_height: f32,
     window_width: f32,
-    evaporation_rate: f32,
     diffusion_rate: f32,
     diffusion_strength: f32,
 }
@@ -17,7 +16,6 @@ impl Constants {
         let constants = Constants {
             window_height: window_config.height as f32,
             window_width: window_config.width as f32,
-            evaporation_rate: simulation_config.evaporation_rate,
             diffusion_rate: simulation_config.diffusion_rate,
             diffusion_strength: simulation_config.diffusion_strength,
         };

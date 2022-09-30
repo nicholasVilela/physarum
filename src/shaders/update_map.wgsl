@@ -1,7 +1,6 @@
 struct Constants {
     window_height: f32;
     window_width: f32;
-    evaporation_rate: f32;
     diffusion_rate: f32;
     diffusion_strength: f32;
 };
@@ -53,7 +52,6 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let size = constants.window_width;
     let index = global_id.x;
 
-    let evaporation_rate = constants.evaporation_rate;
     let diffusion_rate = constants.diffusion_rate;
 
     let distance = 1;
