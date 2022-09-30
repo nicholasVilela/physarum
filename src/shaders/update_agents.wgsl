@@ -2,7 +2,6 @@ struct Constants {
     window_height: f32;
     window_width: f32;
     diffusion_rate: f32;
-    diffusion_strength: f32;
 };
 
 struct Param {
