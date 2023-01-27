@@ -9,7 +9,7 @@ SpeciesConfig(
     right_bias: 3.0,
     weight: 0.02,
     color_r: 1.0,
-    color_g: 1.0,
+    color_g: 0.0,
     color_b: 1.0,
     // color: (1.0, 1.0, 1.0),
 )
