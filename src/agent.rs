@@ -7,19 +7,25 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Agent {
-    pub position: [f32; 2],
+    // pub position: [f32; 2],
+    pub position_x: f32,
+    pub position_y: f32,
     pub angle: f32,
     pub species: u32,
 }
 
 impl Agent {
     pub fn default() -> GameResult<Agent> {
-        let position = [0.0, 0.0];
+        // let position = [0.0, 0.0];
+        let position_x = 0.0;
+        let position_y = 0.0;
         let angle = 0.0;
         let species = 0;
 
         let agent = Agent {
-            position,
+            // position,
+            position_x,
+            position_y,
             angle,
             species,
         };
@@ -36,9 +42,13 @@ impl Agent {
     }
 
     pub fn random_position<R: Rng + ?Sized>(mut self, rng: &mut R) -> GameResult<Agent> {
-        let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
+        // let position = [rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)];
 
-        self.position = position;
+        let position_x = rng.gen_range(-1.0..1.0);
+        let position_y = rng.gen_range(-1.0..1.0);
+
+        self.position_x = position_x;
+        self.position_y = position_y;
         
         return Ok(self);
     }

@@ -1,5 +1,4 @@
 SimulationConfig(
     agent_count: 2000000,
-    diffusion_rate: 0.01,
-    diffusion_strength: 0.001,
+    diffusion_rate: 0.1,
 )

@@ -1,7 +1,7 @@
 struct TrailOutput {
     [[builtin(position)]] pos: vec4<f32>;
     [[location(0)]] value: f32;
-    [[location(1)]] species: u32;
+    [[location(10)]] species: u32;
 };
 
 struct Species {
@@ -10,12 +10,13 @@ struct Species {
     sensor_distance: f32;
     turn_speed: f32;
     move_speed: f32;
-    random_forward_strength: f32;
-    random_left_strength: f32;
-    random_right_strength: f32;
+    forward_bias: f32;
+    left_bias: f32;
+    right_bias: f32;
     weight: f32;
-    color: vec3<f32>;
-    color2: vec3<f32>;
+    color_r: f32;
+    color_g: f32;
+    color_b: f32;
 };
 
 struct SpeciesMap {
@@ -27,13 +28,14 @@ struct SpeciesMap {
 
 [[stage(vertex)]]
 fn main_vs(
-    [[location(0)]] pos: vec2<f32>,
-    [[location(1)]] value: f32,
-    [[location(2)]] species: u32,
+    [[location(0)]] pos_x: f32,
+    [[location(1)]] pos_y: f32,
+    [[location(2)]] value: f32,
+    [[location(3)]] species: u32,
 ) -> TrailOutput {
     var trail_output: TrailOutput;
 
-    trail_output.pos = vec4<f32>(pos.x, pos.y, 0.0, 1.0);
+    trail_output.pos = vec4<f32>(pos_x, pos_y, 0.0, 1.0);
     trail_output.value = value;
     trail_output.species = species;
 
@@ -43,10 +45,10 @@ fn main_vs(
 [[stage(fragment)]]
 fn main_fs(trail_output: TrailOutput) -> [[location(0)]] vec4<f32> {
     var v = trail_output.value;
-
     let species = species_map.species[trail_output.species];
-    let color = species.color;
-    return vec4<f32>(color[0] * v, color[1] * v, color[2] * v, 1.0);
+
+    return vec4<f32>(species.color_r * v, species.color_g * v, species.color_b * v, 1.0);
+
     // return vec4<f32>(0.0 * v, 0.0 * v, 1.0 * v, 1.0);
 
     // var r = v;

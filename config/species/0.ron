@@ -1,16 +1,15 @@
 SpeciesConfig(
-    sensor_size    : 1.0,
-    sensor_angle   : 66.0,
-    sensor_distance: 0.05,
-
-    turn_speed: 3.0,
-    move_speed: 0.4,
-
-    random_forward_strength: 5.0,
-    random_left_strength   : 2.0,
-    random_right_strength  : 6.0,
-
+    sensor_size: 1.0,
+    sensor_angle: 50.0,
+    sensor_distance: 0.02,
+    turn_speed: 2.0,
+    move_speed: 0.5,
+    forward_bias: 1.0,
+    left_bias: 2.0,
+    right_bias: 3.0,
     weight: 0.02,
-
-    color: (0.0, 1.0, 1.0),
+    color_r: 1.0,
+    color_g: 1.0,
+    color_b: 1.0,
+    // color: (1.0, 1.0, 1.0),
 )

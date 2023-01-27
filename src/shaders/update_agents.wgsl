@@ -15,11 +15,13 @@ struct Species {
     sensor_distance: f32;
     turn_speed: f32;
     move_speed: f32;
-    random_forward_strength: f32;
-    random_left_strength: f32;
-    random_right_strength: f32;
+    forward_bias: f32;
+    left_bias: f32;
+    right_bias: f32;
     weight: f32;
-    color: vec3<f32>;
+    color_r: f32;
+    color_g: f32;
+    color_b: f32;
 };
 
 struct SpeciesMap {
@@ -28,6 +30,8 @@ struct SpeciesMap {
 
 struct Agent {
     position: vec2<f32>;
+    // position_x: f32;
+    // position_y: f32;
     angle: f32;
     species: u32;
 };
@@ -132,16 +136,16 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let seed = u32(agent.position.y * constants.window_width + agent.position.x);
     var random = hash(seed + index + param.frame);
 
-    let species = species_map.species[agent.species];
+    let species = species_map.species[0];
 
     let sensor_size = species.sensor_size;
     let sensor_angle = species.sensor_angle;
     let sensor_distance = species.sensor_distance;
     let turn_speed = species.turn_speed;
     let move_speed = species.move_speed;
-    let random_forward_strength = species.random_forward_strength;
-    let random_left_strength = species.random_left_strength;
-    let random_right_strength = species.random_right_strength;
+    let forward_bias = species.forward_bias;
+    let left_bias = species.left_bias;
+    let right_bias = species.right_bias;
     let weight = species.weight;
 
     let sensor_angle_rad = sensor_angle * (PI / 180.0);
@@ -153,13 +157,13 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
     let random_steer_strength = scale_to_range_01(random);
 
     if (weight_forward < weight_left && weight_forward < weight_right) {
-        agent.angle = agent.angle + (random_steer_strength + random_forward_strength) * mod_turn_speed * param.delta_time;
+        agent.angle = agent.angle + (random_steer_strength + forward_bias) * mod_turn_speed * param.delta_time;
     }
     else if (weight_right > weight_left) {
-        agent.angle = agent.angle - (random_steer_strength + random_left_strength) * mod_turn_speed * param.delta_time;
+        agent.angle = agent.angle - (random_steer_strength + left_bias) * mod_turn_speed * param.delta_time;
     }
     else if (weight_left > weight_right) {
-        agent.angle = agent.angle + (random_steer_strength + random_right_strength) * mod_turn_speed * param.delta_time;
+        agent.angle = agent.angle + (random_steer_strength + right_bias) * mod_turn_speed * param.delta_time;
     }
 
     var direction = vec2<f32>(cos(agent.angle), sin(agent.angle));

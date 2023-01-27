@@ -10,12 +10,13 @@ pub struct Species {
     pub sensor_distance: f32,
     pub turn_speed: f32,
     pub move_speed: f32,
-    pub random_forward_strength: f32,
-    pub random_left_strength: f32,
-    pub random_right_strength: f32,
+    pub forward_bias: f32,
+    pub left_bias: f32,
+    pub right_bias: f32,
     pub weight: f32,
-    pub color: [f32; 3],
-    pub color2: [f32; 3],
+    pub color_r: f32,
+    pub color_g: f32,
+    pub color_b: f32,
 }
 
 impl Species {
@@ -26,12 +27,13 @@ impl Species {
             sensor_distance: config.sensor_distance,
             turn_speed: config.turn_speed,
             move_speed: config.move_speed,
-            random_forward_strength: config.random_forward_strength,
-            random_left_strength: config.random_left_strength,
-            random_right_strength: config.random_right_strength,
+            forward_bias: config.forward_bias,
+            left_bias: config.left_bias,
+            right_bias: config.right_bias,
             weight: config.weight,
-            color: config.color,
-            color2: config.color,
+            color_r: config.color_r,
+            color_g: config.color_g,
+            color_b: config.color_b,
          };
 
         return Ok(species);
